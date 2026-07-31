@@ -38,7 +38,7 @@ bytes, not lines. Durable policy only; 실행 이력은 `docs/vault-ingest-log.m
 - Volume to date: 0 ingest runs / 0 clippings 처리 — `Clippings/` 미처리 1건, wiki article 0개, topic 1개
 - Ingest history: `docs/vault-ingest-log.md` — 실행별 상세, append-only, 세션 시작 시 로드하지 않음
   (repo 문서 승격은 같은 파일 `## Promotions`)
-- Verification queue: `grep -rln "needs-update" wiki/*.md` — 2026-07-31 기준 0건
+- Verification queue: `grep -rln "^status: needs-update" wiki/*.md` — 2026-07-31 기준 0건
 - Canonical lists: wiki 문서 목록 `wiki/INDEX.md`, 프로젝트 인덱스 `projects/README.md`
 
 ## Open Threads
