@@ -64,7 +64,8 @@ Task:
 - Do not read or edit raw/ file contents.
 - Check frontmatter, template drift, stub notes, orphan notes, broken wikilinks, escaped-pipe aliases, raw-file wikilinks in sources, duplicate concepts, contradictions, and overcrowded topic pages.
 - Save the report to outputs/YYYY-MM-DD-vault-lint.md using templates/lint-report.md when available.
-- Update wiki/VAULT_MEMORY.md with Last Lint Pass and a compact issue summary, keeping it under 200 lines.
+- Update wiki/VAULT_MEMORY.md with Last Lint Pass and a compact issue summary, keeping it under 8 KB
+  (verify with `wc -c wiki/VAULT_MEMORY.md`). The budget is bytes, not lines.
 
 Rules:
 - Do not edit raw/ or archive/ file contents.

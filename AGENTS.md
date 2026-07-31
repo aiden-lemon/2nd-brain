@@ -20,7 +20,17 @@ At runtime, never silently fallback to `~/knowledge`. Use the user-provided `VAU
 or infer the vault root from the current working directory only when the expected vault
 structure is present. If the vault root is unclear, ask before editing.
 
+When writing or updating vault documents, never record machine-specific absolute paths.
+Prefer relative paths rooted at the vault, such as `wiki/INDEX.md` or `raw/file.md`.
+If a path must appear in user-facing guidance, use `$VAULT_DIR`, `${VAULT_DIR}`, or
+`~/knowledge` instead of resolved paths like `/Users/.../knowledge`.
+
 Do not edit file contents in `raw/`. Save durable answers under `outputs/` unless a task is clearly project-scoped.
 Use templates before inventing new note structures.
+
+`wiki/VAULT_MEMORY.md` is loaded on every vault operation and is capped at 8 KB (`wc -c`) — the budget
+is bytes, not lines. Never append a per-run narrative to it: replace the single `Last Ingest:` line,
+append execution detail to `docs/vault-ingest-log.md`, and leave project status in
+`projects/<name>/README.md`. See `VAULT_RULES.md` § Core Rules.
 
 When Obsidian is running and an Obsidian CLI skill is available, prefer it for vault search, backlinks, link analysis, and frontmatter edits. Use direct file tools for bulk edits.
