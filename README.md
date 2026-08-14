@@ -10,6 +10,7 @@
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-agent-D97757)](https://claude.com/claude-code)
 [![Markdown](https://img.shields.io/badge/format-Markdown-000000)](https://commonmark.org)
 [![Git](https://img.shields.io/badge/sync-Git%20%2B%20PR-F05032)](https://git-scm.com)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 **키워드**: Obsidian second brain · 세컨드 브레인 · 제2의 뇌 · 개인 지식 관리(PKM) · AI 지식 베이스 · 마크다운 위키 자동 생성 · 웹 클리퍼 인제스트 · Claude Code agent skills · PARA 노트 정리법
 
@@ -247,3 +248,7 @@ Personal Knowledge Management (PKM) · Second Brain · Zettelkasten · PARA Meth
 ## 기여
 
 이 저장소는 부트스트랩 템플릿이다. clone 후 origin을 본인/팀 저장소로 바꿔 쓰는 것을 전제로 한다. 개선 제안은 이슈나 PR로 보내면 된다.
+
+## 라이선스
+
+[MIT](LICENSE) — 자유롭게 clone·수정·재배포할 수 있다. 이 라이선스는 vault 템플릿(규칙·스킬·템플릿·스크립트)에 적용되며, 사용자가 자기 vault에 채워 넣는 문서 내용에는 적용되지 않는다.

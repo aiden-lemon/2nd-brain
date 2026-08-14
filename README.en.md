@@ -10,6 +10,7 @@
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-agent-D97757)](https://claude.com/claude-code)
 [![Markdown](https://img.shields.io/badge/format-Markdown-000000)](https://commonmark.org)
 [![Git](https://img.shields.io/badge/sync-Git%20%2B%20PR-F05032)](https://git-scm.com)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 **Keywords**: Obsidian second brain · personal knowledge management (PKM) · AI knowledge base · markdown wiki automation · web clipper ingest pipeline · Claude Code agent skills · PARA method · Zettelkasten · cited Q&A over your notes
 
@@ -243,3 +244,7 @@ Personal Knowledge Management (PKM) · Second Brain · Zettelkasten · PARA Meth
 ## Contributing
 
 This repository is a bootstrap template — clone it and repoint `origin` to your own or your team's repository. Suggestions are welcome as issues or PRs.
+
+## License
+
+[MIT](LICENSE) — clone, modify, and redistribute freely. The license covers the vault template (rules, skills, templates, scripts), not the notes you write into your own vault.
