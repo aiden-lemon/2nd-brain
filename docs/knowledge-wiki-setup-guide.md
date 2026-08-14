@@ -63,7 +63,7 @@ export VAULT_DIR="$HOME/knowledge"
 cd "$VAULT_DIR"
 ```
 
-> `~/knowledge`는 예시 경로일 뿐이다. 핵심은 clone한 폴더를 `VAULT_DIR`로 **명시 지정**하는 것이다. `VAULT_RULES.md`는 어떤 툴도 `~/knowledge`로 조용히 폴백하지 못하게 하므로, 다른 위치에 clone했다면 그 경로를 홈 기준 상대경로(`$HOME/...`)로 `VAULT_DIR`에 지정하면 된다. 개인 머신의 절대경로는 문서에 남기지 않는다.
+> `~/knowledge`는 예시 경로일 뿐이다. 핵심은 clone한 폴더를 `VAULT_DIR`로 **명시 지정**하는 것이다. `CLAUDE.md` § Vault Root는 어떤 툴도 `~/knowledge`로 조용히 폴백하지 못하게 하므로, 다른 위치에 clone했다면 그 경로를 홈 기준 상대경로(`$HOME/...`)로 `VAULT_DIR`에 지정하면 된다. 개인 머신의 절대경로는 문서에 남기지 않는다.
 
 clone 직후 origin은 예시 repo를 가리킨다. 본인/팀 소유의 git으로 전환한다.
 
@@ -74,6 +74,13 @@ git push -u origin master                          # 최초 1회 본인 저장�
 ```
 
 이후 clone·push·PR은 모두 본인 저장소를 기준으로 한다. 아래 8~9번의 `lemoncloud-io/2nd-brain`은 예시이므로 본인 저장소 경로로 바꿔 읽는다.
+
+이어서 배포 값을 본인/팀 값으로 교체한다. 스킬 본문은 건드리지 않는다 — 조직 고유 값의 단일 출처는 이 파일이다.
+
+```bash
+$EDITOR projects/second-brain/config/team-settings.yaml
+# vault.name · github.vault_repo · github.default_reviewer · mail.weekly_report.to
+```
 
 매번 `export`하기 싫으면 shell 설정에 추가한다.
 

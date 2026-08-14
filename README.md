@@ -17,10 +17,10 @@ wiki/             ← 개념 문서, 한 개념당 한 파일
 wiki/topics/      ← 토픽 인덱스 페이지 (주제 클러스터)
 outputs/          ← 질의 응답, 분석 리포트, 린트 결과
 projects/<name>/  ← 프로젝트별 실행 맥락과 산출물
-areas/            ← 지속 영역: daily/ 노트와 ideas/ 노트
+areas/            ← 지속 영역: daily/ 노트, weekly/ 보고서, ideas/ 노트
 templates/        ← Obsidian + LLM 출력 템플릿 (공유 계약)
 archive/          ← 완료 프로젝트와 폐기 자료 (append-only)
-docs/             ← 설치 가이드 등 시스템 문서
+docs/             ← 설치 가이드, raw/ 계약, GitHub 연결 계약 등 시스템 문서
 ```
 
 > `raw/`와 `archive/`는 append-only다. `wiki/VAULT_MEMORY.md`와 `wiki/INDEX.md`는 모든 vault 작업 시작 시 로드된다.
@@ -79,8 +79,10 @@ gh --version         # 선택
 - `ingest/<YYYY-MM-DD>-<작업자-slug>` 브랜치를 `master`에서 생성 (같은 날 재실행 시 `-2`, `-3` 접미사)
 - 처리한 클리핑을 내용 변경 없이 `Clippings/` → `raw/`로 이동 (append-only)
 - `templates/`를 적용해 `wiki/` 개념 문서 생성 (예: `multi-agent-orchestration`, `hermes-agent`), 필요 시 `wiki/topics/`에 새 토픽 추가 (예: `ai-agents`)
-- `wiki/INDEX.md`, `wiki/TOPIC_MAP.md`, `wiki/VAULT_MEMORY.md` 갱신
-- 결과를 커밋·push하고 `master` 대상 PR을 자동으로 오픈 (기본 리뷰어 `steve-lemon`)
+- `wiki/INDEX.md`·`wiki/TOPIC_MAP.md` 갱신, `docs/vault-ingest-log.md`에 실행 서술 append,
+  `wiki/VAULT_MEMORY.md`의 `Last Ingest` 한 줄 교체 (8 KB 예산 유지)
+- 결과를 커밋·push하고 `master` 대상 PR을 자동으로 오픈
+  (리뷰어는 `projects/second-brain/config/team-settings.yaml`의 `github.default_reviewer`)
 
 PR 오픈까지는 확인 없이 진행되지만, PR **merge는 사용자의 명시적 승인**이 있어야 한다. 새로 만들어진 문서는 대개 `stub` 상태이며, 시간 민감하거나 근거가 부족한 주장은 `needs-update`로 표기된다. 실행이 끝나면 처리한 클리핑, 생성·갱신 문서, 남은 이슈, PR 링크가 요약 보고된다.
 
@@ -110,3 +112,6 @@ Claude에 위임해서 클리핑 처리해줘
 | `vault-ingest` | Hermes 네이티브 인제스트 폴백 |
 | `vault-query` | wiki 기반 응답, 보존 답변을 `outputs/`에 저장 |
 | `vault-lint` | Claude 우선 린트 + Hermes 네이티브 폴백 |
+| `vault-weekly-report` | git 전수 통계 기반 주간 보고서 (`areas/weekly/`) |
+| `private-note` | git 비추적 개인 노트 (`private/YYYY-MM-DD.md`) |
+| `github-project-link` / `github-project-sync` | 외부 GitHub repo 등록·상태 동기화 |

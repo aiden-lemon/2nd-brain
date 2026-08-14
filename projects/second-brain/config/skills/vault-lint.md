@@ -60,12 +60,23 @@ Read first:
 - templates/lint-report.md, if present
 
 Task:
-- Scan wiki markdown files and topic pages.
+- Scan wiki markdown files and topic pages. Scan frontmatter in all other Markdown files except
+  `raw/` and `archive/`.
 - Do not read or edit raw/ file contents.
 - Check frontmatter, template drift, stub notes, orphan notes, broken wikilinks, escaped-pipe aliases, raw-file wikilinks in sources, duplicate concepts, contradictions, and overcrowded topic pages.
+- In every frontmatter, require `related` items and vault Markdown note references in `sources`
+  to be quoted Obsidian wikilinks. Keep raw paths, URLs, and non-note artifacts in `sources` as strings.
+- Regenerate docs/raw-index.md by running
+  `python3 projects/second-brain/config/scripts/generate_raw_index.py` from the vault root
+  (this reads raw/ filenames and frontmatter only — no raw/ content edits). If it surfaces
+  orphan raw files or duplicate source URLs, include them in the lint report.
 - Save the report to outputs/YYYY-MM-DD-vault-lint.md using templates/lint-report.md when available.
-- Update wiki/VAULT_MEMORY.md with Last Lint Pass and a compact issue summary, keeping it under 8 KB
-  (verify with `wc -c wiki/VAULT_MEMORY.md`). The budget is bytes, not lines.
+- In wiki/VAULT_MEMORY.md, replace only the `Last Lint Pass:` line (date + issue counts, max 200 bytes)
+  and refresh the `Verification queue` count. Issue detail belongs in the outputs/ report, not in memory.
+  Keep wiki/VAULT_MEMORY.md under 8 KB (`wc -c`).
+- Report any Current State / Open Threads entry that has drifted out of contract: a `Last Ingest:` line
+  that was appended instead of replaced, restated project status, an Open Threads list over 5 items, or
+  a closed thread still listed.
 
 Rules:
 - Do not edit raw/ or archive/ file contents.
@@ -91,7 +102,8 @@ cd "$ABSOLUTE_VAULT_DIR" && claude -p "<CLAUDE_LINT_JOB_SPEC with ABSOLUTE_VAULT
 1. `$VAULT_DIR/wiki/VAULT_MEMORY.md`,
    `$VAULT_DIR/wiki/INDEX.md`, `$VAULT_DIR/wiki/TOPIC_MAP.md`를 읽는다.
 2. `$VAULT_DIR/templates/lint-report.md`가 있으면 읽고 lint report 출력 구조로 사용한다.
-3. `wiki/`의 markdown 문서를 스캔한다. `raw/`는 읽거나 수정하지 않는다.
+3. `wiki/`의 markdown 문서를 스캔하고, 그 밖의 Markdown 파일은 frontmatter만 스캔한다.
+   `raw/`와 `archive/`는 읽거나 수정하지 않는다.
 4. 다음 항목을 점검한다.
    - frontmatter 누락 또는 필수 필드 누락
    - 사용 가능한 템플릿과 크게 어긋나는 wiki/query/lint 문서 구조
@@ -100,13 +112,22 @@ cd "$ABSOLUTE_VAULT_DIR" && claude -p "<CLAUDE_LINT_JOB_SPEC with ABSOLUTE_VAULT
    - 깨진 wikilink
    - `[[note\|Alias]]`처럼 pipe 문자가 escape된 Obsidian alias
    - `sources`에 raw 파일을 `[[...]]` wikilink로 넣은 경우
+   - 모든 frontmatter에서 `related` 항목 또는 `sources`의 vault Markdown 노트 참조가
+     quoted wikilink(`"[[target]]"` 또는 `"[[target|Alias]]"`)가 아닌 경우. 단,
+     `sources`의 raw 경로·URL·비노트 파일은 문자열로 유지
    - 중복 개념
    - 서로 모순되는 설명
    - 10개 이상 문서를 가진 과밀 topic page
 5. 필요한 경우 빈 stub 문서를 만든다. 단, 추측으로 긴 본문을 작성하지 않는다.
-6. lint 결과를 `outputs/YYYY-MM-DD-vault-lint.md`에 저장한다.
-7. `wiki/VAULT_MEMORY.md`의 Last Lint Pass와 stub/issue 요약을 갱신한다.
-8. 결과 요약(신규 stub 수, 분할 후보 topic, 발견된 모순 수)을 사용자에게 보고한다.
+6. `docs/raw-index.md`를 재생성한다: vault 루트에서
+   `python3 projects/second-brain/config/scripts/generate_raw_index.py`
+   (raw/ 파일명과 frontmatter만 읽는다 — raw/ 내용 수정 없음). 오펀 raw 파일이나
+   source URL 중복이 표시되면 lint 리포트에 포함한다.
+7. lint 결과를 `outputs/YYYY-MM-DD-vault-lint.md`에 저장한다.
+8. `wiki/VAULT_MEMORY.md`의 `Last Lint Pass` 한 줄(날짜 + issue 건수, 200 bytes 이하)만 교체하고
+   `Verification queue` 건수를 갱신한다. issue 상세는 `outputs/` 리포트에 두고 memory로 옮기지 않는다.
+   갱신 후 `wc -c wiki/VAULT_MEMORY.md` < 8192를 확인한다.
+9. 결과 요약(신규 stub 수, 분할 후보 topic, 발견된 모순 수)을 사용자에게 보고한다.
    심각한 모순이 발견되면 즉시 보고하고, 사소한 것(빈 stub 등)은 주간 요약에만
    포함한다.
 

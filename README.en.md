@@ -15,10 +15,10 @@ wiki/             ← concept articles, one concept per file
 wiki/topics/      ← topic index pages (subject clusters)
 outputs/          ← query answers, analysis reports, lint results
 projects/<name>/  ← per-project execution context and outputs
-areas/            ← ongoing areas: daily/ notes and ideas/ notes
+areas/            ← ongoing areas: daily/ notes, weekly/ reports, ideas/ notes
 templates/        ← Obsidian + LLM output templates (shared contracts)
 archive/          ← completed projects and superseded material (append-only)
-docs/             ← system docs such as the setup guide
+docs/             ← system docs: setup guide, raw/ contract, GitHub-link contract
 ```
 
 > `raw/` and `archive/` are append-only. `wiki/VAULT_MEMORY.md` and `wiki/INDEX.md` load at the start of every vault operation.
@@ -77,8 +77,11 @@ Drop one source into `Clippings/` (e.g. an article on a multi-agent setup) and r
 - Create an `ingest/<YYYY-MM-DD>-<author-slug>` branch off `master` (re-runs on the same day get a `-2`, `-3` suffix)
 - Move each processed clipping from `Clippings/` to `raw/` unchanged (append-only)
 - Create `wiki/` concept articles from `templates/` (e.g. `multi-agent-orchestration`, `hermes-agent`) and add new topics under `wiki/topics/` as needed (e.g. `ai-agents`)
-- Update `wiki/INDEX.md`, `wiki/TOPIC_MAP.md`, and `wiki/VAULT_MEMORY.md`
-- Commit, push, and open a PR against `master` automatically (default reviewer `steve-lemon`)
+- Update `wiki/INDEX.md` and `wiki/TOPIC_MAP.md`, append this run's narrative to
+  `docs/vault-ingest-log.md`, and replace the single `Last Ingest` line in
+  `wiki/VAULT_MEMORY.md` (8 KB budget)
+- Commit, push, and open a PR against `master` automatically
+  (reviewer = `github.default_reviewer` in `projects/second-brain/config/team-settings.yaml`)
 
 Opening the PR happens without confirmation, but **merging requires your explicit approval**. New articles usually start as `stub`, and time-sensitive or under-supported claims are flagged `needs-update`. When it finishes, you get a summary of processed clippings, created/updated articles, remaining issues, and the PR link.
 
@@ -108,3 +111,6 @@ Hermes skills are the source of truth for each workflow:
 | `vault-ingest` | Hermes-native ingest fallback |
 | `vault-query` | Answer from wiki, save retained answers to `outputs/` |
 | `vault-lint` | Claude-first lint with Hermes-native fallback |
+| `vault-weekly-report` | Weekly report from full git statistics (`areas/weekly/`) |
+| `private-note` | Untracked personal notes (`private/YYYY-MM-DD.md`) |
+| `github-project-link` / `github-project-sync` | Register and sync external GitHub repos |

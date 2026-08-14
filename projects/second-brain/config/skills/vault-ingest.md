@@ -47,18 +47,28 @@ vault 경로를 확인한다.
 7. 모든 wiki 문서는 해당 템플릿 또는 지정된 frontmatter를 포함한다.
 8. 관련 wiki 문서에는 `[[wikilink]]`를 추가한다. Obsidian alias는
    `[[note-slug|Alias]]` 형식을 사용하고 pipe 문자 앞에 backslash를 넣지 않는다.
-9. `wiki/topics/`, `wiki/INDEX.md`, `wiki/VAULT_MEMORY.md`를 갱신한다.
-10. 처리 완료된 클리핑은 원문을 보존한 채 `raw/`로 이동한다. 이미 같은 이름이 있으면
-   덮어쓰지 말고 `-1`, `-2` 같은 suffix를 붙인다.
+9. `wiki/topics/`와 `wiki/INDEX.md`를 갱신한다. 이번 실행 서술은 `docs/vault-ingest-log.md`의
+   `## Ingest Runs`에 append한다(append-only, 기존 항목 수정·삭제 금지).
+   `wiki/VAULT_MEMORY.md`에는 기존 `- Last Ingest:` 한 줄을 **교체**한다(append 금지, 200 bytes 이하):
+   `- Last Ingest: <YYYY-MM-DD> (<author-slug>) — N clippings -> X new / Y updated wiki notes`
+   `Volume to date`·`Verification queue` 수치를 갱신하고, 프로젝트 상태는 memory에 적지 않는다
+   (`projects/<name>/README.md` frontmatter가 진실원). 끝나면 `wc -c wiki/VAULT_MEMORY.md` < 8192를 확인한다.
+10. 처리 완료된 클리핑은 원문을 보존한 채 `raw/`로 이동한다. 처리 전에 클리핑의
+   `source:` URL이 기존 raw frontmatter에 있는지 확인하고, 중복이면 새 wiki 노트를
+   만들지 않고 기존 노트를 갱신한다(재클리핑 원문도 raw/에 보존).
+   이동 시점에 파일명만 정규화한다(내용 무수정, `docs/raw-layout.md` § 파일명 정규화):
+   smart punctuation → ASCII, emoji 제거, 120바이트 초과 절단, 한글은 NFC.
+   이미 같은 이름이 있으면 덮어쓰지 말고 `-1`, `-2` 같은 suffix를 붙인다.
    wiki 문서의 `sources`에는 원문을 `[[...]]` wikilink로 넣지 말고
-   `"raw/<source-file-name>.md"` 경로 문자열로 기록한다.
+   정규화된 이름의 `"raw/<source-file-name>.md"` 경로 문자열로 기록한다.
 11. 마지막 응답에는 다음만 간단히 보고한다.
 
 - 처리한 클리핑 파일
 - 생성한 wiki 문서
 - 업데이트한 wiki 문서
 - 새 stub 문서
-- 갱신한 topic/index/memory 파일
+- 갱신한 topic/index/memory 파일과 `docs/vault-ingest-log.md` append 결과
+- `wc -c wiki/VAULT_MEMORY.md` 측정값 (8192 미만이어야 한다)
 
 ## Wiki frontmatter
 
@@ -79,7 +89,7 @@ wikilink로 만들지 않는다.
 ## GitHub PR 워크플로우
 
 이 fallback 절차는 git/GitHub 작업을 포함하지 않는다 — 파일 처리까지만 담당한다.
-브랜치 생성, 커밋 정리, PR 요청(기본 리뷰어 `steve-lemon`)은 git/`gh` CLI를 실행할
+브랜치 생성, 커밋 정리, PR 요청(리뷰어는 `projects/second-brain/config/team-settings.yaml`의 `github.default_reviewer`)은 git/`gh` CLI를 실행할
 수 있는 실행 경로(`vault-ingest-claude.md`)의 책임이다. Hermes가 이 fallback을
 실행한 뒤 별도로 git 작업을 하고 싶다면 `vault-ingest-claude.md`의 "GitHub PR
 워크플로우" 절차를 그대로 따른다.

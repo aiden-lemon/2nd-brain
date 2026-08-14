@@ -2,43 +2,41 @@
 
 Before vault work, read:
 
-1. `VAULT_RULES.md`
-2. `wiki/VAULT_MEMORY.md`
-3. `wiki/INDEX.md`
-4. Matching files in `templates/` when creating notes or outputs
+1. `VAULT_RULES.md` — directory contract, note contracts, workflows
+2. `wiki/VAULT_MEMORY.md` — current state and pointers
+3. `wiki/INDEX.md` — canonical wiki article list
+4. The matching file in `templates/` when creating a note or output
 
-Vault root rules:
+## Vault Root
 
-- Use the user-provided `VAULT_DIR` when present.
-- Otherwise infer the vault root from the current working directory only when it contains `VAULT_RULES.md`, `wiki/`, `raw/`, `Clippings/`, `outputs/`, and `templates/`.
-- Never silently fall back to `~/knowledge`; that path is only a setup example.
-- Resolve `VAULT_DIR` to an absolute path before delegated or automated work.
-- Only read or write under the resolved vault root.
-- Never leave machine-specific absolute paths in vault documents.
-- Prefer relative vault paths such as `wiki/INDEX.md`, `wiki/VAULT_MEMORY.md`, `raw/<file>.md`, and `outputs/<file>.md`.
-- If a path must be shown in user-facing documentation or agent instructions, prefer `$VAULT_DIR`, `${VAULT_DIR}`, or `~/knowledge` over resolved paths like `/Users/.../knowledge`.
+`VAULT_DIR` is the vault root. Use the user-provided value when present; otherwise infer it
+from the current working directory **only** when `VAULT_RULES.md`, `wiki/`, `raw/`,
+`Clippings/`, `outputs/`, and `templates/` are all present. Never silently fall back to
+`~/knowledge` — that path is only a setup example. If the root is unclear, ask before reading
+or writing. Read and write only under the resolved root.
 
-Safety rules:
+## Hard Invariants
 
-- Do not edit file contents in `raw/` or `archive/`; both are append-only.
-- Never commit personal experiment data to this shared team vault: per-item labels over
-  personal media, personal photo/file content descriptions, or local sample folder
-  names/paths. Keep aggregate metrics only in retained docs; gitignore such data files
-  (track only synthetic `*.example.*`). See `VAULT_RULES.md` § Core Rules.
-- Use templates before inventing new note structures.
-- `wiki/VAULT_MEMORY.md` is loaded every session and capped at 8 KB (`wc -c`), measured in bytes not
-  lines. Never append per-run narrative to it: replace the single `Last Ingest:` line, append execution
-  detail to `docs/vault-ingest-log.md` (append-only, not loaded at session start), and keep project
-  status in `projects/<name>/README.md`. See `VAULT_RULES.md` § Core Rules.
-- Preserve raw source provenance as `"raw/<source-file-name>.md"`, not raw-file wikilinks.
-- Use Obsidian aliases as `[[note-slug|Alias]]`, not escaped-pipe links.
+- `raw/` and `archive/` are append-only. Never edit, rename, or delete files there.
+  Contract: `docs/raw-layout.md`.
+- Never commit personal experiment data — per-item labels over personal media, personal
+  photo/file content descriptions, or local sample folder names/paths. Aggregate metrics
+  only. Contract: `VAULT_RULES.md` § Core Rules.
+- `wiki/VAULT_MEMORY.md` is loaded every session and capped at 8 KB (`wc -c`) — bytes, not
+  lines. Never append per-run narrative to it. Contract: `VAULT_RULES.md` § Core Rules.
 
-Workflow priority:
+## Gotchas
 
-- Ingest and lint automation should prefer Claude Code when available.
-- If the `claude` CLI is missing, unavailable, or unauthenticated, report that and let Hermes run the Hermes-native fallback workflow.
-- For delegated ingest, follow `projects/second-brain/config/skills/vault-ingest-claude.md`.
-- For fallback ingest/query/lint, follow the relevant Hermes skill:
-  - `vault-ingest`
-  - `vault-query`
-  - `vault-lint`
+- Never leave machine-specific absolute paths in vault documents. Prefer relative vault
+  paths (`wiki/INDEX.md`, `raw/<file>.md`); in user-facing docs use `$VAULT_DIR` or
+  `~/knowledge`, not resolved paths like `/Users/.../knowledge`.
+- Source provenance is the string `"raw/<source-file-name>.md"`, not a raw-file wikilink.
+- Obsidian aliases are `[[note-slug|Alias]]`. Do not escape the pipe.
+- Use the matching `templates/` file before inventing a note or output structure.
+
+## Workflows
+
+Skills in `projects/second-brain/config/skills/` are the source of truth for procedures.
+Prefer Claude Code for ingest and lint; if the `claude` CLI is missing, unavailable, or
+unauthenticated, report that and let Hermes run the native fallback (`vault-ingest`,
+`vault-query`, `vault-lint`). Delegated ingest follows `vault-ingest-claude.md`.
