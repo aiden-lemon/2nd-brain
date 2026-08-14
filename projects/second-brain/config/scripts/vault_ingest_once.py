@@ -86,18 +86,28 @@ Process every markdown file in Clippings/.
 Move processed originals to raw/ without changing their content.
 Create or update wiki notes using matching templates in templates/.
 Prefer updating existing wiki notes over creating duplicate notes.
-Update wiki/topics/, wiki/INDEX.md, wiki/TOPIC_MAP.md, and wiki/VAULT_MEMORY.md.
+Update wiki/topics/, wiki/INDEX.md, and wiki/TOPIC_MAP.md.
+Append this run's narrative to docs/vault-ingest-log.md under "## Ingest Runs" (append-only; never
+edit or delete existing entries; you do not need to read the whole file to append).
+In wiki/VAULT_MEMORY.md, REPLACE the single existing "- Last Ingest:" line — never add a second one:
+  - Last Ingest: <YYYY-MM-DD> (<author-slug>) — N clippings -> X new / Y updated wiki notes
+Keep that line under 200 bytes, refresh the "Volume to date" and "Verification queue" counts, and keep
+the whole file under 8 KB (wc -c).
 
 Rules:
 - Do not edit raw file contents.
 - Record raw source provenance as \"raw/<source-file-name>.md\", not as a raw-file wikilink.
 - Use Obsidian aliases as [[note-slug|Alias]], not [[note-slug\\|Alias]].
 - Mark unsupported or time-sensitive claims as needs-update or TODO.
+- Never append a per-run narrative to wiki/VAULT_MEMORY.md: it is loaded every session and capped at
+  8 KB. Narrative goes to docs/vault-ingest-log.md. Do not restate project status in memory either —
+  projects/<name>/README.md frontmatter is the source of truth.
 - Do not run git push, git reset, git clean, rm -rf, or destructive commands.
 
 Final response:
 Report the current working directory, ABSOLUTE_VAULT_DIR, processed clipping files,
 created wiki notes, updated wiki notes, new stubs, topic/index/memory updates,
+the docs/vault-ingest-log.md append, the resulting wc -c of wiki/VAULT_MEMORY.md,
 and any unresolved issues.
 """
 

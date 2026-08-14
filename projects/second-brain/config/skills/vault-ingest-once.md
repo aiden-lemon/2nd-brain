@@ -33,6 +33,8 @@ python3 projects/second-brain/config/scripts/vault_ingest_once.py
 - `Clippings/`, `raw/`, `wiki/`, `wiki/INDEX.md`, `wiki/TOPIC_MAP.md`, `wiki/VAULT_MEMORY.md` 상태
 - raw source provenance가 `"raw/<file>.md"` 문자열인지
 - raw/archive 파일 내용 미수정
+- `wc -c wiki/VAULT_MEMORY.md` < 8192, `grep -c '^- Last Ingest' wiki/VAULT_MEMORY.md` == 1
+- 실행 서술이 `docs/vault-ingest-log.md`에 append됐는지
 - Claude 결과를 검증 없이 성공 처리하지 않았는지
 
 ## Cron prompt seed

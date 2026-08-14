@@ -9,7 +9,7 @@ description: >
 # GitHub Project Sync (동기화)
 
 등록된 GitHub 연결 프로젝트의 상태를 감지·제안하는 스킬. 외부 repo에는 읽기 전용.
-규칙의 진실원은 `VAULT_RULES.md` § GitHub-Linked Projects.
+규칙의 진실원은 `docs/github-linked-projects.md` (요약·진입점은 `VAULT_RULES.md` § GitHub-Linked Projects).
 
 ## 언제 사용하는가
 
@@ -63,7 +63,7 @@ description: >
    갱신한다. `status: done`이면 폴더를 `archive/projects/@<org>/<repo>/`로 이동하고
    org 인덱스와 메인 인덱스의 repo 수(N)를 갱신한다.
 7. 변경 파일을 커밋한다. 공용 vault이므로 push + PR
-   (base `master`, 리뷰어 `steve-lemon`)까지 진행하고, 머지는 사용자 승인을 기다린다.
+   (base `master`, 리뷰어는 `team-settings.yaml`의 `github.default_reviewer`)까지 진행하고, 머지는 사용자 승인을 기다린다.
 
 ## 금지 사항
 
@@ -76,5 +76,5 @@ description: >
 ## 트리거 예시
 
 - "외부 프로젝트 상태 전부 동기화해줘."
-- "@lemoncloud-io 쪽만 상태 확인해줘."
-- "lemoncloud-io/some-service 최근 활동 반영해줘."
+- "@<org> 쪽만 상태 확인해줘."
+- "<org>/some-service 최근 활동 반영해줘."

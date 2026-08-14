@@ -9,7 +9,7 @@ description: >
 # GitHub Project Link (등록)
 
 외부 GitHub 프로젝트를 vault의 상태·목표 추적 계층에 등록하는 스킬.
-규칙의 진실원은 `VAULT_RULES.md` § GitHub-Linked Projects.
+규칙의 진실원은 `docs/github-linked-projects.md` (요약·진입점은 `VAULT_RULES.md` § GitHub-Linked Projects).
 
 ## 언제 사용하는가
 
@@ -35,7 +35,7 @@ description: >
    보고한다 (갱신은 `github-project-sync` 소관).
 4. `$GITHUB_DIR/<org>/<repo>`에 클론이 없으면
    `gh repo clone <org>/<repo> "$GITHUB_DIR/<org>/<repo>"`로 클론한다.
-   버전 라인 등록이면 qualifier 붙은 폴더명(예: `lemon-core-v42`)으로 클론하고
+   버전 라인 등록이면 qualifier 붙은 폴더명(예: `<repo>-v42`)으로 클론하고
    해당 브랜치를 체크아웃한다 — vault 노트 폴더명도 이 이름을 그대로 따른다.
    클론 여부가 애매하면(예: 폴더는 있는데 git repo가 아님) 사용자에게 확인한다.
 5. repo 문서(README, ROADMAP, CHANGELOG, docs/ 상위 문서)를 읽고 `goal` 초안
@@ -43,10 +43,10 @@ description: >
 6. `templates/project-readme-github.md`를 사용해
    `$VAULT_DIR/projects/@<org>/<폴더명>/README.md`를 생성한다. 노트 폴더명은
    로컬 클론 폴더명과 동일하게 한다 — 보통 repo명이지만, 버전 라인 클론이면
-   `lemon-core-v42`처럼 qualifier가 붙은 이름을 그대로 따른다.
+   `<repo>-v42`처럼 qualifier가 붙은 이름을 그대로 따른다.
    `repo: <org>/<repo>`, 확인받은 `goal`, `status`, `last_synced`(오늘)를 채운다.
    owner가 팀 org면 `scope: team`, 개인 계정이면 `scope: personal`로 설정한다.
-   추적할 메인 라인이 repo 기본 브랜치와 다르면(예: `lemon-core`의 `feat/v4.2`)
+   추적할 메인 라인이 repo 기본 브랜치와 다르면(예: `<repo>`의 `feat/v4.2`)
    `branch:`에 그 브랜치를 지정한다 — 일시적 작업 브랜치는 지정하지 않는다.
    `outputs/` 폴더는 만들지 않는다.
 7. org 인덱스 `$VAULT_DIR/projects/@<org>/README.md`를 갱신한다. 없으면 아래
@@ -56,7 +56,7 @@ description: >
    # @<org>
 
    GitHub 연결 프로젝트 인덱스. repo 등록·상태 변경 시 이 테이블을 갱신한다.
-   규칙: `VAULT_RULES.md` § GitHub-Linked Projects.
+   규칙: `docs/github-linked-projects.md`.
 
    | repo | status | goal |
    | --- | --- | --- |
@@ -67,7 +67,7 @@ description: >
    org 행을 추가한다: `| [@<org>](@<org>/) | N repos | GitHub 연결 프로젝트 |`
    (N = org 인덱스의 repo 수. 이후 등록 시 N을 갱신).
 9. 변경 파일을 검토 후 커밋한다. 공용 vault이므로 push + PR
-   (base `master`, 리뷰어 `steve-lemon`)까지 진행하고, 머지는 사용자 승인을 기다린다.
+   (base `master`, 리뷰어는 `team-settings.yaml`의 `github.default_reviewer`)까지 진행하고, 머지는 사용자 승인을 기다린다.
 
 ## 금지 사항
 
@@ -79,5 +79,5 @@ description: >
 
 ## 트리거 예시
 
-- "lemoncloud-io/some-service를 vault에 연결해줘."
-- "lemoncloud-io org에서 관리할 repo들 골라서 등록하자."
+- "<org>/some-service를 vault에 연결해줘."
+- "<org> org에서 관리할 repo들 골라서 등록하자."
