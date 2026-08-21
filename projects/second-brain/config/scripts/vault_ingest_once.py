@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# origin: lemoncloud-io/knowledge@01f358b:projects/second-brain/config/scripts/vault_ingest_once.py
 """Run one Claude-first vault ingest pass.
 
 This script is intentionally thin: it resolves/locks the vault, checks whether Claude Code

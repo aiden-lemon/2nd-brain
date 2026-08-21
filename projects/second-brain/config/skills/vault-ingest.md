@@ -4,6 +4,7 @@ description: >
   사용자의 knowledge vault($VAULT_DIR)에 새로 들어온
   Clippings를 Hermes의 현재 LLM(GPT 또는 Claude)이 직접 wiki로 컴파일한다.
   Clippings/ 폴더에 새 파일이 생겼을 때, 또는 예약된 주기로 실행한다.
+origin: lemoncloud-io/knowledge@01f358b:projects/second-brain/config/skills/vault-ingest.md
 ---
 
 # Vault Ingest (Hermes-native fallback)
@@ -47,8 +48,10 @@ vault 경로를 확인한다.
 7. 모든 wiki 문서는 해당 템플릿 또는 지정된 frontmatter를 포함한다.
 8. 관련 wiki 문서에는 `[[wikilink]]`를 추가한다. Obsidian alias는
    `[[note-slug|Alias]]` 형식을 사용하고 pipe 문자 앞에 backslash를 넣지 않는다.
-9. `wiki/topics/`와 `wiki/INDEX.md`를 갱신한다. 이번 실행 서술은 `docs/vault-ingest-log.md`의
-   `## Ingest Runs`에 append한다(append-only, 기존 항목 수정·삭제 금지).
+9. `wiki/topics/`와 `wiki/INDEX.md`를 갱신한다. 이번 실행 기록은
+   `outputs/runs/YYYY-MM-DD-ingest-<author-slug>.md`에 run-log 노트로 작성한다
+   (`templates/run-log.md`, frontmatter `summary` ≤ 200 bytes, 상세는 본문).
+   동결된 `docs/vault-ingest-log.md`(2026-08-14)에는 append하지 않는다.
    `wiki/VAULT_MEMORY.md`에는 기존 `- Last Ingest:` 한 줄을 **교체**한다(append 금지, 200 bytes 이하):
    `- Last Ingest: <YYYY-MM-DD> (<author-slug>) — N clippings -> X new / Y updated wiki notes`
    `Volume to date`·`Verification queue` 수치를 갱신하고, 프로젝트 상태는 memory에 적지 않는다
@@ -67,7 +70,7 @@ vault 경로를 확인한다.
 - 생성한 wiki 문서
 - 업데이트한 wiki 문서
 - 새 stub 문서
-- 갱신한 topic/index/memory 파일과 `docs/vault-ingest-log.md` append 결과
+- 갱신한 topic/index/memory 파일과 run-log 노트 경로
 - `wc -c wiki/VAULT_MEMORY.md` 측정값 (8192 미만이어야 한다)
 
 ## Wiki frontmatter

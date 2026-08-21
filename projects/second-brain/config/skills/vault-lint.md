@@ -4,6 +4,7 @@ description: >
   사용자의 knowledge vault에 대해 Claude Code 우선, Hermes-native fallback으로
   주기적 lint pass를 실행한다 (모순 탐지, 고아 페이지, 누락 아티클, frontmatter 결함 점검).
   예약 실행 전용 — 사용자가 직접 요청하는 경우는 드물다.
+origin: lemoncloud-io/knowledge@01f358b:projects/second-brain/config/skills/vault-lint.md
 ---
 
 # Vault Lint (Claude-first with Hermes fallback)
@@ -64,6 +65,14 @@ Task:
   `raw/` and `archive/`.
 - Do not read or edit raw/ file contents.
 - Check frontmatter, template drift, stub notes, orphan notes, broken wikilinks, escaped-pipe aliases, raw-file wikilinks in sources, duplicate concepts, contradictions, and overcrowded topic pages.
+- Check every tracked filename for cross-platform (Windows) compatibility: forbidden
+  characters (`< > : " / \ | ? *`), control characters, trailing dots/spaces, reserved
+  device names (CON, PRN, AUX, NUL, COM1-9, LPT1-9 — matched case-insensitively), and case-insensitive path
+  collisions. Report violations in the lint report — renames in raw/ require user
+  approval per docs/raw-layout.md § Append-only; never rename automatically.
+- Stub boundary (VAULT_RULES.md § Note Contracts): flag `status: draft` notes whose body is under
+  1,200 non-whitespace characters (frontmatter and code blocks excluded), and `status: stub` notes
+  above that size whose body does not state a missing-evidence/coverage reason.
 - In every frontmatter, require `related` items and vault Markdown note references in `sources`
   to be quoted Obsidian wikilinks. Keep raw paths, URLs, and non-note artifacts in `sources` as strings.
 - Regenerate docs/raw-index.md by running
@@ -107,7 +116,9 @@ cd "$ABSOLUTE_VAULT_DIR" && claude -p "<CLAUDE_LINT_JOB_SPEC with ABSOLUTE_VAULT
 4. 다음 항목을 점검한다.
    - frontmatter 누락 또는 필수 필드 누락
    - 사용 가능한 템플릿과 크게 어긋나는 wiki/query/lint 문서 구조
-   - `status: stub` 문서
+   - `status: stub` 문서, 그리고 stub 경계 드리프트(`VAULT_RULES.md` § Note Contracts):
+     본문(frontmatter·코드블록 제외, 공백 제외) 1,200자 미만인 `draft`, 그 이상인데
+     결손 사유가 본문에 없는 `stub`
    - 고아 문서
    - 깨진 wikilink
    - `[[note\|Alias]]`처럼 pipe 문자가 escape된 Obsidian alias
@@ -118,6 +129,10 @@ cd "$ABSOLUTE_VAULT_DIR" && claude -p "<CLAUDE_LINT_JOB_SPEC with ABSOLUTE_VAULT
    - 중복 개념
    - 서로 모순되는 설명
    - 10개 이상 문서를 가진 과밀 topic page
+   - 크로스 플랫폼(Windows) 비호환 파일명: 금지 문자(`< > : " / \ | ? *`)·제어문자·
+     끝 점/공백·예약어(CON, PRN, AUX, NUL, COM1-9, LPT1-9 — 대소문자 무시)·
+     대소문자 경로 충돌.
+     리포트에만 올린다 — raw/ rename은 사용자 승인 사안 (docs/raw-layout.md § Append-only)
 5. 필요한 경우 빈 stub 문서를 만든다. 단, 추측으로 긴 본문을 작성하지 않는다.
 6. `docs/raw-index.md`를 재생성한다: vault 루트에서
    `python3 projects/second-brain/config/scripts/generate_raw_index.py`

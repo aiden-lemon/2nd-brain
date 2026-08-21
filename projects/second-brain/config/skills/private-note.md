@@ -6,6 +6,7 @@ description: >
   private 노트 시작해줘", "개인 노트 열어줘", "private에 기록해줘"처럼 개인
   전용 기록을 요청할 때 사용한다. (팀에 공유되는 `areas/daily/` 노트와는
   별개이며, 그 스킬과 혼동하지 않는다.)
+origin: lemoncloud-io/knowledge@01f358b:projects/second-brain/config/skills/private-note.md
 ---
 
 # Private Note (개인 전용, git 비추적)

@@ -4,6 +4,7 @@ description: >
   외부 GitHub repo(org/repo)를 로컬 규약 위치($GITHUB_DIR/<org>/<repo>)에 클론하고,
   vault의 projects/@<org>/<repo>/README.md 추적 노트와 2계층 인덱스를 생성·갱신한다.
   사용자가 "이 repo를 vault에 연결/등록해줘"라고 요청할 때 사용한다.
+origin: lemoncloud-io/knowledge@01f358b:projects/second-brain/config/skills/github-project-link.md
 ---
 
 # GitHub Project Link (등록)
@@ -35,7 +36,7 @@ description: >
    보고한다 (갱신은 `github-project-sync` 소관).
 4. `$GITHUB_DIR/<org>/<repo>`에 클론이 없으면
    `gh repo clone <org>/<repo> "$GITHUB_DIR/<org>/<repo>"`로 클론한다.
-   버전 라인 등록이면 qualifier 붙은 폴더명(예: `<repo>-v42`)으로 클론하고
+   버전 라인 등록이면 qualifier 붙은 폴더명(예: `lemon-core-v42`)으로 클론하고
    해당 브랜치를 체크아웃한다 — vault 노트 폴더명도 이 이름을 그대로 따른다.
    클론 여부가 애매하면(예: 폴더는 있는데 git repo가 아님) 사용자에게 확인한다.
 5. repo 문서(README, ROADMAP, CHANGELOG, docs/ 상위 문서)를 읽고 `goal` 초안
@@ -43,10 +44,10 @@ description: >
 6. `templates/project-readme-github.md`를 사용해
    `$VAULT_DIR/projects/@<org>/<폴더명>/README.md`를 생성한다. 노트 폴더명은
    로컬 클론 폴더명과 동일하게 한다 — 보통 repo명이지만, 버전 라인 클론이면
-   `<repo>-v42`처럼 qualifier가 붙은 이름을 그대로 따른다.
+   `lemon-core-v42`처럼 qualifier가 붙은 이름을 그대로 따른다.
    `repo: <org>/<repo>`, 확인받은 `goal`, `status`, `last_synced`(오늘)를 채운다.
    owner가 팀 org면 `scope: team`, 개인 계정이면 `scope: personal`로 설정한다.
-   추적할 메인 라인이 repo 기본 브랜치와 다르면(예: `<repo>`의 `feat/v4.2`)
+   추적할 메인 라인이 repo 기본 브랜치와 다르면(예: `lemon-core`의 `feat/v4.2`)
    `branch:`에 그 브랜치를 지정한다 — 일시적 작업 브랜치는 지정하지 않는다.
    `outputs/` 폴더는 만들지 않는다.
 7. org 인덱스 `$VAULT_DIR/projects/@<org>/README.md`를 갱신한다. 없으면 아래

@@ -3,6 +3,7 @@ name: vault-ingest-once
 description: >
   Claude Code 우선으로 vault Clippings ingest를 한 번 실행하는 원샷 스킬. 세부 규칙은
   vault-ingest-claude.md를 따르고, Claude가 시작 전 단계에서 불가하면 vault-ingest.md로 fallback한다.
+origin: lemoncloud-io/knowledge@01f358b:projects/second-brain/config/skills/vault-ingest-once.md
 ---
 
 # Vault Ingest Once
@@ -34,7 +35,7 @@ python3 projects/second-brain/config/scripts/vault_ingest_once.py
 - raw source provenance가 `"raw/<file>.md"` 문자열인지
 - raw/archive 파일 내용 미수정
 - `wc -c wiki/VAULT_MEMORY.md` < 8192, `grep -c '^- Last Ingest' wiki/VAULT_MEMORY.md` == 1
-- 실행 서술이 `docs/vault-ingest-log.md`에 append됐는지
+- run-log 노트가 `outputs/runs/`에 생성됐는지 (동결된 `docs/vault-ingest-log.md`는 무수정)
 - Claude 결과를 검증 없이 성공 처리하지 않았는지
 
 ## Cron prompt seed
