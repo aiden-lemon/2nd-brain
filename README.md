@@ -45,6 +45,8 @@
 | 기능 | 설명 |
 | --- | --- |
 | **클리핑 인제스트** | Obsidian Web Clipper로 모은 `Clippings/`의 원문을 하루 1회 배치로 위키 문서로 컴파일 |
+| **PDF 인제스트** | PDF를 페이지별 텍스트 밀도에 맞는 전략으로 MD 변환해 `Clippings/`에 투입 (`pdf2md-ingest`) |
+| **문서 승격** | 팀/개인 repo의 문서를 재사용 개념은 wiki로, 원문 스냅샷은 `raw/`로 승격 (`vault-promote`) |
 | **인용 기반 질의응답** | `wiki/INDEX.md`를 근거로 답하고, 보존할 답변은 `outputs/`에 저장 |
 | **품질 린트** | stub·모순·끊긴 링크·frontmatter 위반을 검사해 리포트를 남기고 `raw/` 색인을 재생성 |
 | **주간 보고서** | git 전수 통계로 지난 주 활동을 집계해 `areas/weekly/`에 md + 메일 발송용 HTML 생성 |
@@ -220,11 +222,17 @@ python3 projects/second-brain/config/scripts/vault_ingest_once.py
 | `vault-ingest-claude` | 우선 인제스트 경로 (Claude Code) |
 | `vault-ingest` | Hermes 네이티브 인제스트 폴백 |
 | `vault-ingest-once` | 수동·cron·webhook 공용 원샷 인제스트 진입점 (`vault_ingest_once.py`) |
+| `pdf2md-ingest` | PDF를 MD로 변환해 `Clippings/`에 투입 — 텍스트 밀도 측정 후 전략(pymupdf4llm·로컬 OCR·Claude 비전 전사) 제안, wiki화는 인제스트가 이어받음 |
+| `vault-promote` | repo 문서·개인 KB 노트를 wiki + `raw/`로 승격 (클리핑 인제스트와 별도 레인) |
 | `vault-query` | wiki 기반 응답, 보존 답변을 `outputs/`에 저장 |
 | `vault-lint` | Claude 우선 린트 + Hermes 네이티브 폴백 |
 | `vault-weekly-report` | git 전수 통계 기반 주간 보고서 (`areas/weekly/`) |
 | `private-note` | git 비추적 개인 노트 (`private/YYYY-MM-DD.md`) |
 | `github-project-link` / `github-project-sync` | 외부 GitHub repo 등록·상태 동기화 |
+| `google-workspace` | Google Drive·Sheets·Slides 문서를 workspace-mcp 서버로 검색·읽기·편집 |
+| `ollama-local-models` | Ollama로 로컬 LLM/VLM 설치·서빙·호출하는 범용 절차 |
+| `parallel-wp-orchestration` | 멀티 repo/모듈 작업을 서브 에이전트 병렬 WP로 분해·실행·통합 |
+| `ai-studio-project-onboarding` | Google AI Studio export 앱을 로컬 git 정착 → vault 등록 → 개발 계획까지 온보딩 |
 
 ## 프로젝트
 

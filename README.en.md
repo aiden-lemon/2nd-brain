@@ -45,6 +45,8 @@ This vault inserts a **compile step** in between. Originals are preserved untouc
 | Feature | What it does |
 | --- | --- |
 | **Clipping ingest** | Compiles sources collected in `Clippings/` (via Obsidian Web Clipper) into wiki articles as one daily batch |
+| **PDF ingest** | Converts PDFs to Markdown with a strategy matched to per-page text density and drops them into `Clippings/` (`pdf2md-ingest`) |
+| **Document promotion** | Promotes team/personal repo docs — reusable concepts to wiki, original snapshots to `raw/` (`vault-promote`) |
 | **Cited Q&A** | Answers from `wiki/INDEX.md` and saves retained answers to `outputs/` |
 | **Quality lint** | Detects stubs, contradictions, broken links, and frontmatter violations, files a report, and regenerates the `raw/` index |
 | **Weekly report** | Aggregates the last week from full git statistics into `areas/weekly/` as Markdown plus an email-ready HTML view |
@@ -216,11 +218,17 @@ The skill documents in `projects/second-brain/config/skills/` are the source of 
 | `vault-ingest-claude` | Preferred ingest path (Claude Code) |
 | `vault-ingest` | Hermes-native ingest fallback |
 | `vault-ingest-once` | One-shot ingest entry point shared by manual, cron, and webhook runs (`vault_ingest_once.py`) |
+| `pdf2md-ingest` | Converts PDFs to Markdown and drops them into `Clippings/` — measures text density, proposes a strategy (pymupdf4llm, local OCR, or Claude vision transcription); the regular ingest takes it from there |
+| `vault-promote` | Promotes team/personal repo docs into the vault — reusable concepts to wiki, an original snapshot to `raw/` (a separate lane from clipping ingest) |
 | `vault-query` | Answer from wiki, save retained answers to `outputs/` |
 | `vault-lint` | Claude-first lint with Hermes-native fallback |
 | `vault-weekly-report` | Weekly report from full git statistics (`areas/weekly/`) |
 | `private-note` | Untracked personal notes (`private/YYYY-MM-DD.md`) |
 | `github-project-link` / `github-project-sync` | Register and sync external GitHub repos |
+| `google-workspace` | Search, read, and edit Google Drive/Sheets/Slides docs via the workspace-mcp server |
+| `ollama-local-models` | General procedure for installing, serving, and calling local LLMs/VLMs with Ollama |
+| `parallel-wp-orchestration` | Decompose multi-repo/module work into parallel sub-agent work packages, run, and integrate |
+| `ai-studio-project-onboarding` | Onboard a Google AI Studio export: settle it into local git, register it in the vault, and plan local development |
 
 ## Projects
 
