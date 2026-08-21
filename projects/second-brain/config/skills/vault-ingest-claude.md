@@ -4,6 +4,7 @@ description: >
   사용자의 knowledge vault($VAULT_DIR)의 Clippings 처리를 Claude CLI/Claude Code에
   우선 위임한다. Hermes는 트리거, 동시 실행 방지, Claude 가용성 확인, Hermes-native
   fallback, 결과 검증, 요약 보고를 담당한다.
+origin: lemoncloud-io/knowledge@01f358b:projects/second-brain/config/skills/vault-ingest-claude.md
 ---
 
 # Vault Ingest Claude (Hermes -> Claude)
@@ -11,7 +12,7 @@ description: >
 이 스킬은 split/hybrid 구성용이며, cron/event 자동화의 기본 ingest 진입점이다.
 
 - Hermes: 트리거, `VAULT_DIR` 확인, Clippings 존재 확인, lock, Claude 가용성 확인, Claude 호출, fallback, 결과 검증, 보고
-- Claude: 원문 읽기, 개념 추출, wiki 작성, templates 적용, raw 이동, index/topic 갱신, `docs/vault-ingest-log.md`에 실행 서술 append, `wiki/VAULT_MEMORY.md`의 `Last Ingest` 한 줄 교체, git 브랜치/커밋 정리, 사용자 확인 후 PR 요청 (자세한 내용은 "GitHub PR 워크플로우" 참고)
+- Claude: 원문 읽기, 개념 추출, wiki 작성, templates 적용, raw 이동, index/topic 갱신, `outputs/runs/`에 run-log 노트 작성(`templates/run-log.md`), `wiki/VAULT_MEMORY.md`의 `Last Ingest` 한 줄 교체, git 브랜치/커밋 정리, 사용자 확인 후 PR 요청 (자세한 내용은 "GitHub PR 워크플로우" 참고)
 
 Claude Code가 설치되어 있지 않거나 인증되지 않았으면 실패로 끝내지 말고 `vault-ingest` Hermes-native 절차로 fallback한다.
 
@@ -62,7 +63,7 @@ Claude 호출 전 `VAULT_DIR`는 반드시 절대경로로 resolve한다. 예를
    - `wiki/INDEX.md`, `wiki/topics/`, `wiki/VAULT_MEMORY.md`가 갱신됐는지
    - `wc -c wiki/VAULT_MEMORY.md` < 8192 인지. 초과하면 성공으로 보고하지 않는다
    - `grep -c '^- Last Ingest' wiki/VAULT_MEMORY.md` == 1 인지 (항목이 append되지 않았는지)
-   - 이번 실행 서술이 `docs/vault-ingest-log.md`에 append됐고, 기존 항목은 수정되지 않았는지
+   - 이번 실행의 run-log 노트가 `outputs/runs/`에 템플릿대로 생성됐는지 (frontmatter `summary` ≤ 200 bytes), 동결된 `docs/vault-ingest-log.md`를 수정하지 않았는지
 8. lock을 제거한다.
 9. 사용자에게 실행 경로(Claude 또는 Hermes fallback), 처리 파일, 생성/수정 문서, 검증 결과, 남은 이슈를 요약한다.
 
@@ -115,14 +116,18 @@ Before processing a clipping, check whether its `source:` URL already exists in 
 frontmatter; if it does, update the existing wiki note(s) instead of creating a duplicate,
 and still preserve the re-clipped original in raw/ with a `-1`/`-2` suffix.
 Move processed originals to raw/ without changing their content. Normalize only the
-FILENAME at move time (docs/raw-layout.md): smart punctuation to ASCII, strip emoji,
+FILENAME at move time (docs/raw-layout.md): smart punctuation to ASCII (never producing
+a straight double quote), strip Windows-forbidden characters (`< > : " / \ | ? *`,
+control chars, trailing dots/spaces, reserved device names), strip emoji,
 truncate over 120 bytes at a word boundary, keep Korean filenames in NFC. Record
 provenance with the normalized name.
 Create or update wiki notes using matching templates in templates/.
 Prefer updating existing wiki notes over creating duplicate notes.
 Update wiki/topics/ and wiki/INDEX.md.
-Append this run's narrative to docs/vault-ingest-log.md under "## Ingest Runs" (append-only; never
-edit or delete existing entries; you do not need to read the whole file to append).
+Write this run's log as a new note at outputs/runs/<YYYY-MM-DD>-ingest-<author-slug>.md
+(add a -2/-3 suffix for repeat runs the same day) using templates/run-log.md: kind ingest,
+frontmatter summary under 200 bytes, counts and sources/notes lists filled, detail in the body.
+Do NOT append to docs/vault-ingest-log.md — it is a frozen ledger (2026-08-14).
 In wiki/VAULT_MEMORY.md, REPLACE the single existing `- Last Ingest:` line — never add a second one:
   `- Last Ingest: <YYYY-MM-DD> (<author-slug>) — N clippings -> X new / Y updated wiki notes (PR #<n>)`
 Keep that line under 200 bytes, refresh the `Volume to date` and `Verification queue` counts, and keep
@@ -134,7 +139,7 @@ Rules:
 - Use Obsidian aliases as [[note-slug|Alias]], not [[note-slug\|Alias]].
 - Mark unsupported or time-sensitive claims as needs-update or TODO.
 - Never append a per-run narrative to wiki/VAULT_MEMORY.md: it is loaded every session and capped at
-  8 KB. Narrative goes to docs/vault-ingest-log.md. Do not restate project status in memory either —
+  8 KB. Narrative goes to the run-log note. Do not restate project status in memory either —
   projects/<name>/README.md frontmatter is the source of truth.
 - Follow the GitHub PR workflow above: create an `ingest/<date>-<author-slug>` branch
   from `master` (author-slug from `gh api user --jq .login`, falling back to a
@@ -149,7 +154,7 @@ Rules:
 Final response:
 Report the current working directory, ABSOLUTE_VAULT_DIR, the author-slug used, the branch created, processed
 clipping files, created wiki notes, updated wiki notes, new stubs, topic/index/memory
-updates, the docs/vault-ingest-log.md append, the resulting `wc -c wiki/VAULT_MEMORY.md`
+updates, the run-log note path, the resulting `wc -c wiki/VAULT_MEMORY.md`
 value, any unresolved issues, and the PR URL that was opened (reviewer: `github.default_reviewer` from team-settings.yaml).
 ```
 

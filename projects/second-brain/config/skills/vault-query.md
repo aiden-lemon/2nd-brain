@@ -4,6 +4,7 @@ description: >
   사용자의 knowledge vault에 쿼리를 던져 wiki 기반 답변을 받는다. 사용자가 vault
   안의 개념·비교·정리를 물어볼 때 이 스킬을 사용한다. (단순 잡담이나 볼트와
   무관한 질문에는 사용하지 않는다.)
+origin: lemoncloud-io/knowledge@01f358b:projects/second-brain/config/skills/vault-query.md
 ---
 
 # Vault Query (Hermes-native)
@@ -31,6 +32,14 @@ vault 경로를 확인한다.
    `$VAULT_DIR/wiki/INDEX.md`를 먼저 읽는다.
 3. `$VAULT_DIR/templates/query-output.md`가 있으면 읽고 출력 문서 구조로 사용한다.
 4. 질문과 관련된 `wiki/` 문서, `wiki/topics/` 페이지, 필요 시 최근 `outputs/`를 읽는다.
+   관련 문서가 **하나도 안 잡히면** 그대로 "vault에 없음"으로 넘기지 말고 카나리아를
+   한 번 친다: `rg -l "^## Summary" "$VAULT_DIR/wiki/" | head -1` (색인 3건
+   `INDEX`·`TOPIC_MAP`·`VAULT_MEMORY`을 뺀 wiki 노트 107건이 전부 `## Summary`를 갖는다 —
+   2026-08-18 실측. 정상이면 반드시 1줄 나온다). 여기서도 비면
+   검색이 고장난 것이지 vault에 근거가 없는 게 아니다 — 답변에 `리콜 실패(도구)`로
+   적고 "vault에 없음"으로 단정하지 않는다. 검색 명령의 stderr는 억제하지 않는다
+   (`2>/dev/null`은 에러를 빈 결과로 바꿔 둘을 구별 불가능하게 만든다).
+   근거: [[knowledge-consumption-gate]].
 5. 답변은 vault 안의 근거를 우선한다. vault에 없는 내용은 추론임을 명시한다.
 6. `$VAULT_DIR/outputs/`가 없으면 먼저 생성한다.
 7. 답변 문서를 `$VAULT_DIR/outputs/YYYY-MM-DD-query-slug.md`에 저장한다.
@@ -53,8 +62,12 @@ vault 경로를 확인한다.
 
 ## Notes
 
+- 조회 판정: 채택 [[slug]] | 기각([[slug]], 사유) | 미해당 | 리콜 실패(도구) — 넷 중 하나
 - Vault에 없는 내용은 "추론" 또는 "추가 확인 필요"로 표시한다.
 ```
+
+`미해당`(정상 검색, 근거 없음)과 `리콜 실패(도구)`(검색 고장)는 다른 값이다. 뭉개면
+도구 고장이 "vault에 없음"으로 기록되고 그 기록이 다음 조회를 오도한다.
 
 ## 트리거 예시
 

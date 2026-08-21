@@ -4,6 +4,7 @@ description: >
   vault의 projects/@<org>/<repo> 추적 노트들을 외부 GitHub repo의 현재 상태와
   대조해 변화를 감지하고 변경안을 제안한다. status/goal/next_action의 최종 반영은
   사용자 승인 후에만 수행한다. "상태 동기화해줘" 요청 시 사용한다.
+origin: lemoncloud-io/knowledge@01f358b:projects/second-brain/config/skills/github-project-sync.md
 ---
 
 # GitHub Project Sync (동기화)
