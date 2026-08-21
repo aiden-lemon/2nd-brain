@@ -46,7 +46,7 @@
 | --- | --- |
 | **클리핑 인제스트** | Obsidian Web Clipper로 모은 `Clippings/`의 원문을 하루 1회 배치로 위키 문서로 컴파일 |
 | **인용 기반 질의응답** | `wiki/INDEX.md`를 근거로 답하고, 보존할 답변은 `outputs/`에 저장 |
-| **품질 린트** | stub·모순·끊긴 링크·frontmatter 위반을 검사하고 리포트를 남김 |
+| **품질 린트** | stub·모순·끊긴 링크·frontmatter 위반을 검사해 리포트를 남기고 `raw/` 색인을 재생성 |
 | **주간 보고서** | git 전수 통계로 지난 주 활동을 집계해 `areas/weekly/`에 md + 메일 발송용 HTML 생성 |
 | **개인 노트** | `private/`는 git 비추적 로컬 전용 공간 — 팀 vault와 개인 메모를 분리 |
 | **GitHub 프로젝트 연결** | 외부 repo를 `projects/@<org>/<repo>/`에 상태·목표 노트로 가볍게 추적 |
@@ -95,7 +95,7 @@ private/          ← 개인 전용 스크래치 (git 비추적)
 | [Obsidian](https://obsidian.md) | 필수 | 마크다운 vault 편집, Web Clipper·플러그인 |
 | [Claude CLI](https://claude.com/claude-code) (`claude`) | 선택 | 인제스트·린트를 Claude Code에 위임 (없으면 Hermes 폴백) |
 | [GitHub CLI](https://cli.github.com) (`gh`) | 선택 | 터미널에서 PR 생성·GitHub 프로젝트 연결 (웹으로 대체 가능) |
-| Python 3 | 선택 | `raw/` 색인 생성 스크립트 |
+| Python 3 | 선택 | 원샷 인제스트 실행(`vault_ingest_once.py`)·`raw/` 색인 생성(`generate_raw_index.py`) 스크립트 |
 
 버전 확인:
 
@@ -162,6 +162,16 @@ Claude에 위임해서 클리핑 처리해줘
 
 새로 만들어진 문서는 대개 `stub` 상태이며, 시간에 민감하거나 근거가 부족한 주장은 `needs-update`로 표기된다. 실행이 끝나면 처리한 클리핑, 생성·갱신 문서, 남은 이슈, PR 링크가 요약 보고된다.
 
+#### 자동 실행 (cron · webhook)
+
+수동 요청 없이 주기 실행하려면 `vault-ingest-once` 스킬이 진입점이다. vault 루트에서:
+
+```bash
+python3 projects/second-brain/config/scripts/vault_ingest_once.py
+```
+
+스크립트는 클리핑 유무·lock·Claude CLI 가용성을 확인해 상태 코드로 알려준다 — `no_work`(처리할 것 없음), `claude_success`(검증 후 요약), `fallback_required`/exit 42(Hermes 네이티브 폴백 실행), `locked`(병렬 실행 금지), `claude_failed_after_start`(부분 변경 가능 — 자동 폴백 금지, 변경 파일 검토 먼저). cron용 프롬프트 시드는 [`vault-ingest-once.md`](projects/second-brain/config/skills/vault-ingest-once.md)에 있다.
+
 ### 질의
 
 무엇이든 물어보면 에이전트가 `wiki/INDEX.md`를 읽어 관련 문서를 찾고, 인용된 답변을 `outputs/`에 저장한다.
@@ -209,6 +219,7 @@ Claude에 위임해서 클리핑 처리해줘
 | --- | --- |
 | `vault-ingest-claude` | 우선 인제스트 경로 (Claude Code) |
 | `vault-ingest` | Hermes 네이티브 인제스트 폴백 |
+| `vault-ingest-once` | 수동·cron·webhook 공용 원샷 인제스트 진입점 (`vault_ingest_once.py`) |
 | `vault-query` | wiki 기반 응답, 보존 답변을 `outputs/`에 저장 |
 | `vault-lint` | Claude 우선 린트 + Hermes 네이티브 폴백 |
 | `vault-weekly-report` | git 전수 통계 기반 주간 보고서 (`areas/weekly/`) |

@@ -46,7 +46,7 @@ This vault inserts a **compile step** in between. Originals are preserved untouc
 | --- | --- |
 | **Clipping ingest** | Compiles sources collected in `Clippings/` (via Obsidian Web Clipper) into wiki articles as one daily batch |
 | **Cited Q&A** | Answers from `wiki/INDEX.md` and saves retained answers to `outputs/` |
-| **Quality lint** | Detects stubs, contradictions, broken links, and frontmatter violations, and files a report |
+| **Quality lint** | Detects stubs, contradictions, broken links, and frontmatter violations, files a report, and regenerates the `raw/` index |
 | **Weekly report** | Aggregates the last week from full git statistics into `areas/weekly/` as Markdown plus an email-ready HTML view |
 | **Private notes** | `private/` is a git-untracked local scratch space, separating personal memos from the shared vault |
 | **GitHub-linked projects** | Tracks external repos as lightweight status/goal notes under `projects/@<org>/<repo>/` |
@@ -95,7 +95,7 @@ private/          ← personal scratch space (git-untracked)
 | [Obsidian](https://obsidian.md) | Required | edit the markdown vault, Web Clipper & plugins |
 | [Claude CLI](https://claude.com/claude-code) (`claude`) | Optional | delegate ingest/lint to Claude Code (falls back to Hermes without it) |
 | [GitHub CLI](https://cli.github.com) (`gh`) | Optional | create PRs / link GitHub projects from the terminal (web works too) |
-| Python 3 | Optional | regenerate the `raw/` index |
+| Python 3 | Optional | one-shot ingest runner (`vault_ingest_once.py`) and `raw/` index generation (`generate_raw_index.py`) |
 
 Version check:
 
@@ -162,6 +162,16 @@ Drop one source into `Clippings/` (e.g. an article on a multi-agent setup) and r
 
 New articles usually start as `stub`, and time-sensitive or under-supported claims are flagged `needs-update`. When it finishes, you get a summary of processed clippings, created/updated articles, remaining issues, and the PR link.
 
+#### Scheduled runs (cron · webhook)
+
+To run ingest on a schedule instead of by request, the `vault-ingest-once` skill is the entry point. From the vault root:
+
+```bash
+python3 projects/second-brain/config/scripts/vault_ingest_once.py
+```
+
+The script checks for pending clippings, the lock, and Claude CLI availability, and reports a status: `no_work` (nothing to process), `claude_success` (verify, then summarize), `fallback_required` / exit 42 (run the Hermes-native fallback), `locked` (never run in parallel), or `claude_failed_after_start` (partial changes possible — no automatic fallback; review the changed files first). A cron prompt seed is included in [`vault-ingest-once.md`](projects/second-brain/config/skills/vault-ingest-once.md).
+
 ### Query
 
 Ask any question — the agent reads `wiki/INDEX.md`, identifies relevant articles, and writes a cited answer to `outputs/`.
@@ -205,6 +215,7 @@ The skill documents in `projects/second-brain/config/skills/` are the source of 
 | --- | --- |
 | `vault-ingest-claude` | Preferred ingest path (Claude Code) |
 | `vault-ingest` | Hermes-native ingest fallback |
+| `vault-ingest-once` | One-shot ingest entry point shared by manual, cron, and webhook runs (`vault_ingest_once.py`) |
 | `vault-query` | Answer from wiki, save retained answers to `outputs/` |
 | `vault-lint` | Claude-first lint with Hermes-native fallback |
 | `vault-weekly-report` | Weekly report from full git statistics (`areas/weekly/`) |
