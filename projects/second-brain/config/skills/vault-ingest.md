@@ -4,7 +4,7 @@ description: >
   사용자의 knowledge vault($VAULT_DIR)에 새로 들어온
   Clippings를 Hermes의 현재 LLM(GPT 또는 Claude)이 직접 wiki로 컴파일한다.
   Clippings/ 폴더에 새 파일이 생겼을 때, 또는 예약된 주기로 실행한다.
-origin: lemoncloud-io/knowledge@01f358b:projects/second-brain/config/skills/vault-ingest.md
+origin: lemoncloud-io/knowledge@45f6b0f:projects/second-brain/config/skills/vault-ingest.md
 ---
 
 # Vault Ingest (Hermes-native fallback)
@@ -55,7 +55,8 @@ vault 경로를 확인한다.
    `wiki/VAULT_MEMORY.md`에는 기존 `- Last Ingest:` 한 줄을 **교체**한다(append 금지, 200 bytes 이하):
    `- Last Ingest: <YYYY-MM-DD> (<author-slug>) — N clippings -> X new / Y updated wiki notes`
    `Volume to date`·`Verification queue` 수치를 갱신하고, 프로젝트 상태는 memory에 적지 않는다
-   (`projects/<name>/README.md` frontmatter가 진실원). 끝나면 `wc -c wiki/VAULT_MEMORY.md` < 8192를 확인한다.
+   (`projects/<name>/README.md` frontmatter가 진실원). 끝나면
+   `python3 projects/second-brain/config/scripts/vault_verify.py --lane ingest --base "$(git merge-base HEAD master)"`가 exit 0인지 확인한다.
 10. 처리 완료된 클리핑은 원문을 보존한 채 `raw/`로 이동한다. 처리 전에 클리핑의
    `source:` URL이 기존 raw frontmatter에 있는지 확인하고, 중복이면 새 wiki 노트를
    만들지 않고 기존 노트를 갱신한다(재클리핑 원문도 raw/에 보존).
@@ -71,7 +72,7 @@ vault 경로를 확인한다.
 - 업데이트한 wiki 문서
 - 새 stub 문서
 - 갱신한 topic/index/memory 파일과 run-log 노트 경로
-- `wc -c wiki/VAULT_MEMORY.md` 측정값 (8192 미만이어야 한다)
+- `vault_verify.py --lane ingest --base "$(git merge-base HEAD master)"` 결과 (exit 0이어야 한다 — 아니면 출력된 defect)
 
 ## Wiki frontmatter
 

@@ -4,7 +4,7 @@ description: >
   팀/개인 repo 문서(또는 개인 KB 증류 노트)를 vault로 승격한다 — 재사용 개념을
   wiki로 추출하고 원문 스냅샷을 raw/에 표준 capture header로 보존한다.
   clipping ingest와 레인이 다른 별도 워크플로. 트리거: "/promote", "승격해줘".
-origin: lemoncloud-io/knowledge@01f358b:projects/second-brain/config/skills/vault-promote.md
+origin: lemoncloud-io/knowledge@45f6b0f:projects/second-brain/config/skills/vault-promote.md
 ---
 
 # Vault Promote (repo 문서 → vault 승격)
@@ -112,7 +112,7 @@ clipping 처리는 `vault-ingest-claude`/`vault-ingest`가 담당한다 — 섞�
    ≤ 200 bytes — 처리 대상, 배치 판정과 근거, 탈락과 사유는 본문에). 동결된
    `docs/vault-ingest-log.md`에는 append하지 않는다. `wiki/VAULT_MEMORY.md`의
    `- Last Promotion:` 한 줄은 **교체**한다(append 금지, 200 bytes 이하). 끝나면
-   `wc -c wiki/VAULT_MEMORY.md` < 8192를 확인한다.
+   `python3 projects/second-brain/config/scripts/vault_verify.py --lane promote --base "$(git merge-base HEAD master)"`가 exit 0인지 확인한다.
 8. **PR**: `master` 기준 `ingest/<YYYY-MM-DD>-<author-slug>-promote` 브랜치(같은 날 2회째부터
    `-2` suffix). author-slug 결정과 커밋/push/PR 오픈 절차, 금지 사항은
    `vault-ingest-claude.md` § GitHub PR 워크플로우를 그대로 따른다 (리뷰어:
@@ -168,8 +168,9 @@ clipping 처리는 `vault-ingest-claude`/`vault-ingest`가 담당한다 — 섞�
 - wiki `sources`가 `"raw/<file>.md"` 문자열인지 (원문 복제 불가 델타 적용 시 면제 — 사유가 run-log에 있는지)
 - wiki 노트를 만들었으면 `wiki/INDEX.md`·`wiki/topics/`가 같이 갱신됐는지, 철회했으면
   두 색인과 `## Related Wiki`에 잔여 링크가 없는지
-- run-log 노트 생성(`kind: promotion`, `summary` ≤ 200 bytes) + `Last Promotion:` 교체 + memory 8 KB 미만인지
-- 기존 raw/ 파일을 수정·rename·삭제하지 않았는지
+- run-log 노트 생성(`kind: promotion`, `summary` ≤ 200 bytes)
+- 공유 불변식(memory 크기, `- Last …:` 마커 중복/길이, 기존 raw/·archive/ 수정·rename·삭제 없음)은
+  `python3 projects/second-brain/config/scripts/vault_verify.py --lane promote --base "$(git merge-base HEAD master)"`가 exit 0인지로 판정한다
 
 ## 금지 사항
 
