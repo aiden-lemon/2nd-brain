@@ -46,9 +46,11 @@ This vault inserts a **compile step** in between. Originals are preserved untouc
 | --- | --- |
 | **Clipping ingest** | Compiles sources collected in `Clippings/` (via Obsidian Web Clipper) into wiki articles as one daily batch |
 | **PDF ingest** | Converts PDFs to Markdown with a strategy matched to per-page text density and drops them into `Clippings/` (`pdf2md-ingest`) |
+| **HWP ingest** | Converts Korean HWP/HWPX documents to Markdown — no Hancom Office required — and drops them into `Clippings/` (`hwp2md-ingest`) |
 | **Document promotion** | Promotes team/personal repo docs — reusable concepts to wiki, original snapshots to `raw/` (`vault-promote`) |
 | **Cited Q&A** | Answers from `wiki/INDEX.md` and saves retained answers to `outputs/` |
 | **Quality lint** | Detects stubs, contradictions, broken links, and frontmatter violations, files a report, and regenerates the `raw/` index |
+| **Invariant verification** | Every write lane (ingest, lint, promote) checks the shared invariants — memory under 8 KB, `raw/`/`archive/` append-only — through one script, `vault_verify.py` |
 | **Weekly report** | Aggregates the last week from full git statistics into `areas/weekly/` as Markdown plus an email-ready HTML view |
 | **Private notes** | `private/` is a git-untracked local scratch space, separating personal memos from the shared vault |
 | **GitHub-linked projects** | Tracks external repos as lightweight status/goal notes under `projects/@<org>/<repo>/` |
@@ -97,7 +99,7 @@ private/          ← personal scratch space (git-untracked)
 | [Obsidian](https://obsidian.md) | Required | edit the markdown vault, Web Clipper & plugins |
 | [Claude CLI](https://claude.com/claude-code) (`claude`) | Optional | delegate ingest/lint to Claude Code (falls back to Hermes without it) |
 | [GitHub CLI](https://cli.github.com) (`gh`) | Optional | create PRs / link GitHub projects from the terminal (web works too) |
-| Python 3 | Optional | one-shot ingest runner (`vault_ingest_once.py`) and `raw/` index generation (`generate_raw_index.py`) |
+| Python 3 | Optional | one-shot ingest runner (`vault_ingest_once.py`), invariant verifier (`vault_verify.py`), and `raw/` index generation (`generate_raw_index.py`) |
 
 Version check:
 
@@ -159,7 +161,7 @@ Drop one source into `Clippings/` (e.g. an article on a multi-agent setup) and r
 - Create an `ingest/<YYYY-MM-DD>-<author-slug>` branch off `master` (re-runs on the same day get a `-2`, `-3` suffix)
 - Move each processed clipping from `Clippings/` to `raw/` unchanged, normalizing only the filename ([`docs/raw-layout.md`](docs/raw-layout.md))
 - Create `wiki/` concept articles from `templates/` (e.g. `multi-agent-orchestration`) and add new topics under `wiki/topics/` as needed
-- Update `wiki/INDEX.md` and `wiki/TOPIC_MAP.md`, append this run's narrative to `docs/vault-ingest-log.md`, and replace the single `Last Ingest` line in `wiki/VAULT_MEMORY.md` (8 KB budget)
+- Update `wiki/INDEX.md` and `wiki/TOPIC_MAP.md`, write this run's log as a note under `outputs/runs/`, and replace the single `Last Ingest` line in `wiki/VAULT_MEMORY.md` (8 KB budget)
 - Commit, push, and open a PR against `master` automatically (reviewer = `github.default_reviewer` in `team-settings.yaml`)
 
 New articles usually start as `stub`, and time-sensitive or under-supported claims are flagged `needs-update`. When it finishes, you get a summary of processed clippings, created/updated articles, remaining issues, and the PR link.
@@ -172,7 +174,9 @@ To run ingest on a schedule instead of by request, the `vault-ingest-once` skill
 python3 projects/second-brain/config/scripts/vault_ingest_once.py
 ```
 
-The script checks for pending clippings, the lock, and Claude CLI availability, and reports a status: `no_work` (nothing to process), `claude_success` (verify, then summarize), `fallback_required` / exit 42 (run the Hermes-native fallback), `locked` (never run in parallel), or `claude_failed_after_start` (partial changes possible — no automatic fallback; review the changed files first). A cron prompt seed is included in [`vault-ingest-once.md`](projects/second-brain/config/skills/vault-ingest-once.md).
+The script checks for pending clippings, the lock, and Claude CLI availability, and reports a status: `no_work` (nothing to process), `claude_success` (the shared-invariant check has already passed — its output is in the `verify` field), `fallback_required` / exit 42 (run the Hermes-native fallback), `locked` (never run in parallel), `claude_failed_after_start` (partial changes possible — no automatic fallback; review the changed files first), or `verify_failed` (the commit and PR exist, but invariant verification failed — do not report success; fix the defects on the PR, never re-run automatically).
+
+The script carries no copy of the job spec handed to Claude — the "Claude job spec" block in [`vault-ingest-claude.md`](projects/second-brain/config/skills/vault-ingest-claude.md) is the single source of truth for both the delegated and the interactive lane. A cron prompt seed is included in [`vault-ingest-once.md`](projects/second-brain/config/skills/vault-ingest-once.md).
 
 ### Query
 
@@ -206,12 +210,12 @@ Humans and LLMs read the same documents. Each one owns a different layer.
 | [`wiki/VAULT_MEMORY.md`](wiki/VAULT_MEMORY.md) | Current state and pointers. Loaded every session, **8 KB cap** |
 | [`docs/raw-layout.md`](docs/raw-layout.md) | `raw/` lanes, append-only definition, filename normalization, index |
 | [`docs/github-linked-projects.md`](docs/github-linked-projects.md) | Contract for tracking external GitHub repos |
-| [`docs/vault-ingest-log.md`](docs/vault-ingest-log.md) | Execution ledger (append-only, not loaded at session start) |
+| [`docs/vault-ingest-log.md`](docs/vault-ingest-log.md) | Historical execution ledger (frozen — new run logs are notes under `outputs/runs/`) |
 | [`projects/second-brain/config/team-settings.yaml`](projects/second-brain/config/team-settings.yaml) | Single source for org/personal deployment values |
 
 ## Skills
 
-The skill documents in `projects/second-brain/config/skills/` are the source of truth for each workflow.
+The skill documents in `projects/second-brain/config/skills/` are the source of truth for each workflow. Folder-style skills (`pdf2md-ingest`, `hwp2md-ingest`) are exposed to Claude Code automatically through symlinks in `.claude/skills/`.
 
 | Skill | Role |
 | --- | --- |
@@ -219,6 +223,7 @@ The skill documents in `projects/second-brain/config/skills/` are the source of 
 | `vault-ingest` | Hermes-native ingest fallback |
 | `vault-ingest-once` | One-shot ingest entry point shared by manual, cron, and webhook runs (`vault_ingest_once.py`) |
 | `pdf2md-ingest` | Converts PDFs to Markdown and drops them into `Clippings/` — measures text density, proposes a strategy (pymupdf4llm, local OCR, or Claude vision transcription); the regular ingest takes it from there |
+| `hwp2md-ingest` | Converts HWP/HWPX to Markdown and drops it into `Clippings/` — pure-Python extraction first (no Hancom Office), Claude vision transcription fallback for text-sparse documents; an out-of-vault mode handles documents that must not be committed |
 | `vault-promote` | Promotes team/personal repo docs into the vault — reusable concepts to wiki, an original snapshot to `raw/` (a separate lane from clipping ingest) |
 | `vault-query` | Answer from wiki, save retained answers to `outputs/` |
 | `vault-lint` | Claude-first lint with Hermes-native fallback |
