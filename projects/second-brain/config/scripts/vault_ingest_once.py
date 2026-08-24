@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
-# origin: lemoncloud-io/knowledge@01f358b:projects/second-brain/config/scripts/vault_ingest_once.py
+# origin: lemoncloud-io/knowledge@45f6b0f:projects/second-brain/config/scripts/vault_ingest_once.py
 """Run one Claude-first vault ingest pass.
 
 This script is intentionally thin: it resolves/locks the vault, checks whether Claude Code
 is available, runs the delegated ingest job when possible, and emits JSON for Hermes/cron.
 If Claude is missing or unauthenticated, it exits 42 so Hermes can run the native fallback
 workflow from projects/second-brain/config/skills/vault-ingest.md.
+
+The job spec handed to Claude is not stored here — it is read from the "Claude job spec"
+block of projects/second-brain/config/skills/vault-ingest-claude.md, which is the single
+source of truth for both the delegated and the interactive lane.
 """
 
 from __future__ import annotations
@@ -20,6 +24,19 @@ from pathlib import Path
 
 EXPECTED_DIRS = ["wiki", "raw", "Clippings", "templates"]
 EXPECTED_FILES = ["VAULT_RULES.md", "wiki/VAULT_MEMORY.md", "wiki/INDEX.md"]
+
+# Tooling paths, resolved from this file rather than from the vault: the spec and the
+# verifier ship with the skills, so a sandbox vault still gets the installed copies.
+SCRIPTS_DIR = Path(__file__).resolve().parent
+VERIFY_SCRIPT = SCRIPTS_DIR / "vault_verify.py"
+JOB_SPEC_FILE = SCRIPTS_DIR.parent / "skills" / "vault-ingest-claude.md"
+JOB_SPEC_HEADING = "## Claude job spec"
+JOB_SPEC_FENCE = "```text"
+VAULT_DIR_PLACEHOLDER = "<resolved absolute vault path>"
+
+
+class JobSpecError(RuntimeError):
+    """The canonical job spec could not be read out of the skill file."""
 
 
 def emit(payload: dict, code: int = 0) -> int:
@@ -46,8 +63,13 @@ def find_claude() -> str | None:
     return None
 
 
-def run(cmd: list[str], cwd: Path | None = None, timeout: int = 60) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(cmd, cwd=cwd, text=True, capture_output=True, timeout=timeout, check=False)
+def run(
+    cmd: list[str],
+    cwd: Path | None = None,
+    timeout: int = 60,
+    env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(cmd, cwd=cwd, text=True, capture_output=True, timeout=timeout, check=False, env=env)
 
 
 def acquire_lock(vault: Path) -> Path | None:
@@ -63,54 +85,49 @@ def acquire_lock(vault: Path) -> Path | None:
     return lock
 
 
-def build_job_spec(vault: Path) -> str:
-    return f"""You are processing an Obsidian markdown knowledge vault.
+def load_job_spec(vault: Path) -> str:
+    """Read the ingest job spec out of the vault-ingest-claude skill.
 
-ABSOLUTE_VAULT_DIR: {vault}
+    This script deliberately carries no copy of its own. It used to, and the two drifted:
+    the inline copy still told the doer to append to docs/vault-ingest-log.md months after
+    that ledger was frozen, and it knew nothing about the branch/commit/PR workflow.
+    A missing heading or fence is reported, never worked around.
+    """
+    if not JOB_SPEC_FILE.is_file():
+        raise JobSpecError(f"job spec source missing: {JOB_SPEC_FILE}")
 
-Before editing:
-- Confirm that the current working directory is ABSOLUTE_VAULT_DIR.
-- If the current working directory is not ABSOLUTE_VAULT_DIR, stop and report the mismatch.
-- Only read or write files under ABSOLUTE_VAULT_DIR.
-- Do not use ~/knowledge unless ABSOLUTE_VAULT_DIR is exactly the resolved ~/knowledge path.
+    lines = JOB_SPEC_FILE.read_text(encoding="utf-8").splitlines()
+    try:
+        heading = lines.index(JOB_SPEC_HEADING)
+    except ValueError:
+        raise JobSpecError(f"{JOB_SPEC_FILE}: no {JOB_SPEC_HEADING!r} heading") from None
+    try:
+        open_fence = lines.index(JOB_SPEC_FENCE, heading)
+    except ValueError:
+        raise JobSpecError(f"{JOB_SPEC_FILE}: no {JOB_SPEC_FENCE!r} fence after {JOB_SPEC_HEADING!r}") from None
+    # Bounded at the next heading: an unclosed fence would otherwise swallow the following
+    # sections up to some later fence and ship that prose to the doer as instructions.
+    close_fence = None
+    for i in range(open_fence + 1, len(lines)):
+        if lines[i] == "```":
+            close_fence = i
+            break
+        if lines[i].startswith("## "):
+            break
+    if close_fence is None:
+        raise JobSpecError(f"{JOB_SPEC_FILE}: job spec fence is never closed")
 
-Read first:
-- VAULT_RULES.md
-- CLAUDE.md, if present
-- wiki/VAULT_MEMORY.md
-- wiki/INDEX.md
-- templates/
-- projects/second-brain/config/skills/vault-ingest.md
+    spec = "\n".join(lines[open_fence + 1:close_fence]).strip()
+    if not spec:
+        raise JobSpecError(f"{JOB_SPEC_FILE}: job spec block is empty")
 
-Task:
-Process every markdown file in Clippings/.
-Move processed originals to raw/ without changing their content.
-Create or update wiki notes using matching templates in templates/.
-Prefer updating existing wiki notes over creating duplicate notes.
-Update wiki/topics/, wiki/INDEX.md, and wiki/TOPIC_MAP.md.
-Append this run's narrative to docs/vault-ingest-log.md under "## Ingest Runs" (append-only; never
-edit or delete existing entries; you do not need to read the whole file to append).
-In wiki/VAULT_MEMORY.md, REPLACE the single existing "- Last Ingest:" line — never add a second one:
-  - Last Ingest: <YYYY-MM-DD> (<author-slug>) — N clippings -> X new / Y updated wiki notes
-Keep that line under 200 bytes, refresh the "Volume to date" and "Verification queue" counts, and keep
-the whole file under 8 KB (wc -c).
-
-Rules:
-- Do not edit raw file contents.
-- Record raw source provenance as \"raw/<source-file-name>.md\", not as a raw-file wikilink.
-- Use Obsidian aliases as [[note-slug|Alias]], not [[note-slug\\|Alias]].
-- Mark unsupported or time-sensitive claims as needs-update or TODO.
-- Never append a per-run narrative to wiki/VAULT_MEMORY.md: it is loaded every session and capped at
-  8 KB. Narrative goes to docs/vault-ingest-log.md. Do not restate project status in memory either —
-  projects/<name>/README.md frontmatter is the source of truth.
-- Do not run git push, git reset, git clean, rm -rf, or destructive commands.
-
-Final response:
-Report the current working directory, ABSOLUTE_VAULT_DIR, processed clipping files,
-created wiki notes, updated wiki notes, new stubs, topic/index/memory updates,
-the docs/vault-ingest-log.md append, the resulting wc -c of wiki/VAULT_MEMORY.md,
-and any unresolved issues.
-"""
+    found = spec.count(VAULT_DIR_PLACEHOLDER)
+    if found != 1:
+        # A placeholder reaching the doer voids the working-directory guard silently.
+        raise JobSpecError(
+            f"{JOB_SPEC_FILE}: expected exactly 1 {VAULT_DIR_PLACEHOLDER!r} in the job spec, found {found}"
+        )
+    return spec.replace(VAULT_DIR_PLACEHOLDER, str(vault)) + "\n"
 
 
 def main() -> int:
@@ -143,7 +160,19 @@ def main() -> int:
         if auth.returncode != 0:
             return emit({"status": "fallback_required", "reason": "claude_auth_failed", "stderr": auth.stderr[-2000:], "vault": str(vault), "clippings": clippings}, 42)
 
-        job = build_job_spec(vault)
+        try:
+            job = load_job_spec(vault)
+        except JobSpecError as exc:
+            # An unreadable spec is an install defect, not a vault problem. Degrade to the
+            # Hermes-native lane (which needs no spec) and name the reason in the report.
+            return emit({
+                "status": "fallback_required",
+                "reason": "job_spec_unavailable",
+                "detail": str(exc),
+                "vault": str(vault),
+                "clippings": clippings,
+            }, 42)
+
         cmd = [
             claude,
             "-p",
@@ -169,6 +198,51 @@ def main() -> int:
                 "fallback": "manual_review_before_fallback",
             }, result.returncode or 1)
 
+        # The doer commits and opens the PR inside the job, so HEAD already contains the
+        # change: the append-only check needs the pre-run merge base or it passes vacuously.
+        # On master the merge base is HEAD itself, so the append-only diff would be empty
+        # and pass vacuously. That only happens when the doer skipped the branch rule.
+        branch = run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=vault, timeout=30)
+        if branch.stdout.strip() in ("master", "main"):
+            return emit({
+                "status": "verify_failed",
+                "reason": "not_on_ingest_branch",
+                "detail": f"committed on {branch.stdout.strip()}; the job must work on an ingest/<date>-<slug> branch",
+                "vault": str(vault),
+                "clippings_before": clippings,
+                "claude_stdout": result.stdout[-8000:],
+            }, 1)
+
+        merge_base = run(["git", "merge-base", "HEAD", "master"], cwd=vault, timeout=30)
+        base_ref = merge_base.stdout.strip()
+        if merge_base.returncode != 0 or not base_ref:
+            return emit({
+                "status": "verify_failed",
+                "reason": "merge_base_unavailable",
+                "detail": merge_base.stderr.strip()[-2000:] or "git merge-base HEAD master returned no ref",
+                "vault": str(vault),
+                "clippings_before": clippings,
+                "claude_stdout": result.stdout[-8000:],
+            }, 1)
+
+        verify = run(
+            [sys.executable, str(VERIFY_SCRIPT), "--lane", "ingest", "--base", base_ref],
+            cwd=vault,
+            timeout=120,
+            env={**os.environ, "VAULT_DIR": str(vault)},
+        )
+        if verify.returncode != 0:
+            return emit({
+                "status": "verify_failed",
+                "reason": "vault_verify_defects" if verify.returncode == 1 else "vault_verify_could_not_run",
+                "verify_exit_code": verify.returncode,
+                "verify_stdout": verify.stdout[-4000:],
+                "verify_stderr": verify.stderr[-2000:],
+                "vault": str(vault),
+                "clippings_before": clippings,
+                "claude_stdout": result.stdout[-8000:],
+            }, verify.returncode)
+
         remaining = sorted(str(p.relative_to(vault)) for p in (vault / "Clippings").glob("*.md"))
         raw_files = sorted(str(p.relative_to(vault)) for p in (vault / "raw").glob("*.md"))
         wiki_files = sorted(str(p.relative_to(vault)) for p in (vault / "wiki").rglob("*.md"))
@@ -179,6 +253,7 @@ def main() -> int:
             "clippings_remaining": remaining,
             "raw_files": raw_files,
             "wiki_files": wiki_files,
+            "verify": verify.stdout.strip(),
             "claude_stdout": result.stdout[-8000:],
         }, 0)
     finally:

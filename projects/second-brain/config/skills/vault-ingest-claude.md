@@ -4,7 +4,7 @@ description: >
   사용자의 knowledge vault($VAULT_DIR)의 Clippings 처리를 Claude CLI/Claude Code에
   우선 위임한다. Hermes는 트리거, 동시 실행 방지, Claude 가용성 확인, Hermes-native
   fallback, 결과 검증, 요약 보고를 담당한다.
-origin: lemoncloud-io/knowledge@01f358b:projects/second-brain/config/skills/vault-ingest-claude.md
+origin: lemoncloud-io/knowledge@45f6b0f:projects/second-brain/config/skills/vault-ingest-claude.md
 ---
 
 # Vault Ingest Claude (Hermes -> Claude)
@@ -61,8 +61,9 @@ Claude 호출 전 `VAULT_DIR`는 반드시 절대경로로 resolve한다. 예를
    - `sources`가 `"raw/<source-file-name>.md"` 형식인지
    - Obsidian alias가 `[[note-slug|Alias]]` 형식인지
    - `wiki/INDEX.md`, `wiki/topics/`, `wiki/VAULT_MEMORY.md`가 갱신됐는지
-   - `wc -c wiki/VAULT_MEMORY.md` < 8192 인지. 초과하면 성공으로 보고하지 않는다
-   - `grep -c '^- Last Ingest' wiki/VAULT_MEMORY.md` == 1 인지 (항목이 append되지 않았는지)
+   - 공유 불변식(memory 크기, `- Last …:` 마커 중복/길이, raw·archive append-only)은
+     `python3 projects/second-brain/config/scripts/vault_verify.py --lane ingest --base "$(git merge-base HEAD master)"`로 판정한다.
+     exit 0이 아니면 성공으로 보고하지 않고 출력된 defect를 그대로 전달한다
    - 이번 실행의 run-log 노트가 `outputs/runs/`에 템플릿대로 생성됐는지 (frontmatter `summary` ≤ 200 bytes), 동결된 `docs/vault-ingest-log.md`를 수정하지 않았는지
 8. lock을 제거한다.
 9. 사용자에게 실행 경로(Claude 또는 Hermes fallback), 처리 파일, 생성/수정 문서, 검증 결과, 남은 이슈를 요약한다.
@@ -76,7 +77,7 @@ Claude가 ingest를 수행할 때는 파일만 고치는 것이 아니라 결과
    - 이 vault는 여러 사람이 공용으로 쓰므로, 누가 만든 브랜치인지 브랜치 이름만 보고 알 수 있어야 한다. 작업자 slug를 구한다: `gh api user --jq .login`을 우선 쓰고, 실패하면 `git config user.name`을 소문자·공백을 하이픈으로 바꾼 slug로 대체하고, 그마저도 없으면 `whoami`를 쓴다.
    - `master`를 기준으로 `ingest/<YYYY-MM-DD>-<작업자-slug>` 형식의 브랜치를 만든다(예: `ingest/2026-07-09-hong-gildong`). 같은 사람이 같은 날 여러 번 실행하면 `-2`, `-3` 접미사를 뒤에 붙인다(예: `ingest/2026-07-09-hong-gildong-2`).
    - `Clippings/`에 아직 커밋되지 않은 파일이 있으면, 이번에 처리할 파일들만 정리해 별도의 시작 커밋으로 남긴다(예: `chore: stage N clippings for ingest`). 이미 커밋되어 있으면 이 하위 단계는 건너뛰고 그 사실을 최종 보고에 남긴다.
-2. **ingest 처리**: 아래 "Claude job spec"에 따라 실제 컨텐츠 변환을 수행한다(원문에서 개념 추출, wiki 작성/갱신, `raw/` 이동, `wiki/INDEX.md`·`wiki/topics/` 갱신, `docs/vault-ingest-log.md`에 서술 append, `wiki/VAULT_MEMORY.md`의 `Last Ingest` 한 줄 교체). 이 단계 자체에서는 커밋하지 않는다.
+2. **ingest 처리**: 아래 "Claude job spec"에 따라 실제 컨텐츠 변환을 수행한다(원문에서 개념 추출, wiki 작성/갱신, `raw/` 이동, `wiki/INDEX.md`·`wiki/topics/`·`wiki/TOPIC_MAP.md` 갱신, `outputs/runs/`에 run-log 노트 작성, `wiki/VAULT_MEMORY.md`의 `Last Ingest` 한 줄 교체). 이 단계 자체에서는 커밋하지 않는다.
 3. **결과 커밋**: 처리로 변경된 파일만 스테이징해 하나의 커밋으로 남긴다. 커밋 메시지는 처리한 클리핑 수와 새/갱신 wiki 문서를 요약한다(예: `feat: ingest 3 clippings into wiki (ai-agents, knowledge-management)`). 시작 커밋(선택)과 결과 커밋(필수) 두 개로 정리하고, 중간에 커밋을 더 쪼개지 않는다.
 4. **PR 오픈**: 결과 커밋 뒤 확인을 기다리지 않고 바로 브랜치를 push하고 `gh pr create`로 PR을 연다. base는 `master`, 기본 리뷰어는 `projects/second-brain/config/team-settings.yaml`의 `github.default_reviewer`다(`gh pr create --base master --reviewer <github.default_reviewer 값> ...`). PR 본문에는 처리한 클리핑, wiki 변경 요약, 남은 needs-update/open question을 적는다.
 5. **완료 보고**: 처리한 클리핑, 생성/갱신 문서, topic/index/memory 갱신, 남은 needs-update/open question, 그리고 열린 PR 링크를 사용자에게 요약해서 보고한다. 이 단계는 사후 보고이며 진행 여부를 묻지 않는다.
@@ -89,6 +90,11 @@ Claude가 ingest를 수행할 때는 파일만 고치는 것이 아니라 결과
 - 커밋을 --no-verify로 hook을 건너뛰거나 서명을 생략하지 않는다.
 
 ## Claude job spec
+
+아래 `text` 펜스 블록은 `scripts/vault_ingest_once.py`가 그대로 읽어 `claude -p`에 넘기는
+정본이다. 스크립트는 사본을 갖지 않는다. 블록을 옮기거나 이 제목·펜스를 바꾸면 스크립트가
+로드에 실패하고(exit 42, `job_spec_unavailable`) 해당 실행은 Hermes-native fallback으로 내려간다.
+`ABSOLUTE_VAULT_DIR:` 자리표시자는 정확히 한 번만 등장해야 한다.
 
 ```text
 You are processing an Obsidian markdown knowledge vault.
@@ -123,7 +129,7 @@ truncate over 120 bytes at a word boundary, keep Korean filenames in NFC. Record
 provenance with the normalized name.
 Create or update wiki notes using matching templates in templates/.
 Prefer updating existing wiki notes over creating duplicate notes.
-Update wiki/topics/ and wiki/INDEX.md.
+Update wiki/topics/, wiki/INDEX.md, and wiki/TOPIC_MAP.md.
 Write this run's log as a new note at outputs/runs/<YYYY-MM-DD>-ingest-<author-slug>.md
 (add a -2/-3 suffix for repeat runs the same day) using templates/run-log.md: kind ingest,
 frontmatter summary under 200 bytes, counts and sources/notes lists filled, detail in the body.
