@@ -46,9 +46,11 @@
 | --- | --- |
 | **클리핑 인제스트** | Obsidian Web Clipper로 모은 `Clippings/`의 원문을 하루 1회 배치로 위키 문서로 컴파일 |
 | **PDF 인제스트** | PDF를 페이지별 텍스트 밀도에 맞는 전략으로 MD 변환해 `Clippings/`에 투입 (`pdf2md-ingest`) |
+| **HWP 인제스트** | 한글 문서(.hwp/.hwpx)를 한컴오피스 없이 MD로 변환해 `Clippings/`에 투입 (`hwp2md-ingest`) |
 | **문서 승격** | 팀/개인 repo의 문서를 재사용 개념은 wiki로, 원문 스냅샷은 `raw/`로 승격 (`vault-promote`) |
 | **인용 기반 질의응답** | `wiki/INDEX.md`를 근거로 답하고, 보존할 답변은 `outputs/`에 저장 |
 | **품질 린트** | stub·모순·끊긴 링크·frontmatter 위반을 검사해 리포트를 남기고 `raw/` 색인을 재생성 |
+| **불변식 자동 검증** | 인제스트·린트·승격 모든 쓰기 레인이 공유 불변식(memory 8 KB, `raw/`·`archive/` append-only 등)을 `vault_verify.py` 한 곳으로 판정 |
 | **주간 보고서** | git 전수 통계로 지난 주 활동을 집계해 `areas/weekly/`에 md + 메일 발송용 HTML 생성 |
 | **개인 노트** | `private/`는 git 비추적 로컬 전용 공간 — 팀 vault와 개인 메모를 분리 |
 | **GitHub 프로젝트 연결** | 외부 repo를 `projects/@<org>/<repo>/`에 상태·목표 노트로 가볍게 추적 |
@@ -97,7 +99,7 @@ private/          ← 개인 전용 스크래치 (git 비추적)
 | [Obsidian](https://obsidian.md) | 필수 | 마크다운 vault 편집, Web Clipper·플러그인 |
 | [Claude CLI](https://claude.com/claude-code) (`claude`) | 선택 | 인제스트·린트를 Claude Code에 위임 (없으면 Hermes 폴백) |
 | [GitHub CLI](https://cli.github.com) (`gh`) | 선택 | 터미널에서 PR 생성·GitHub 프로젝트 연결 (웹으로 대체 가능) |
-| Python 3 | 선택 | 원샷 인제스트 실행(`vault_ingest_once.py`)·`raw/` 색인 생성(`generate_raw_index.py`) 스크립트 |
+| Python 3 | 선택 | 원샷 인제스트(`vault_ingest_once.py`)·불변식 검증(`vault_verify.py`)·`raw/` 색인 생성(`generate_raw_index.py`) 스크립트 |
 
 버전 확인:
 
@@ -159,7 +161,7 @@ Claude에 위임해서 클리핑 처리해줘
 - `ingest/<YYYY-MM-DD>-<작업자-slug>` 브랜치를 `master`에서 생성 (같은 날 재실행 시 `-2`, `-3` 접미사)
 - 처리한 클리핑을 내용 변경 없이 `Clippings/` → `raw/`로 이동 (파일명만 정규화, [`docs/raw-layout.md`](docs/raw-layout.md))
 - `templates/`를 적용해 `wiki/` 개념 문서 생성 (예: `multi-agent-orchestration`), 필요 시 `wiki/topics/`에 새 토픽 추가
-- `wiki/INDEX.md`·`wiki/TOPIC_MAP.md` 갱신, `docs/vault-ingest-log.md`에 실행 서술 append, `wiki/VAULT_MEMORY.md`의 `Last Ingest` 한 줄 교체 (8 KB 예산 유지)
+- `wiki/INDEX.md`·`wiki/TOPIC_MAP.md` 갱신, 이번 실행의 run-log 노트를 `outputs/runs/`에 생성, `wiki/VAULT_MEMORY.md`의 `Last Ingest` 한 줄 교체 (8 KB 예산 유지)
 - 결과를 커밋·push하고 `master` 대상 PR을 자동으로 오픈 (리뷰어는 `team-settings.yaml`의 `github.default_reviewer`)
 
 새로 만들어진 문서는 대개 `stub` 상태이며, 시간에 민감하거나 근거가 부족한 주장은 `needs-update`로 표기된다. 실행이 끝나면 처리한 클리핑, 생성·갱신 문서, 남은 이슈, PR 링크가 요약 보고된다.
@@ -172,7 +174,9 @@ Claude에 위임해서 클리핑 처리해줘
 python3 projects/second-brain/config/scripts/vault_ingest_once.py
 ```
 
-스크립트는 클리핑 유무·lock·Claude CLI 가용성을 확인해 상태 코드로 알려준다 — `no_work`(처리할 것 없음), `claude_success`(검증 후 요약), `fallback_required`/exit 42(Hermes 네이티브 폴백 실행), `locked`(병렬 실행 금지), `claude_failed_after_start`(부분 변경 가능 — 자동 폴백 금지, 변경 파일 검토 먼저). cron용 프롬프트 시드는 [`vault-ingest-once.md`](projects/second-brain/config/skills/vault-ingest-once.md)에 있다.
+스크립트는 클리핑 유무·lock·Claude CLI 가용성을 확인해 상태 코드로 알려준다 — `no_work`(처리할 것 없음), `claude_success`(공유 불변식 검증까지 통과한 상태 — 결과에 `verify` 필드 포함), `fallback_required`/exit 42(Hermes 네이티브 폴백 실행), `locked`(병렬 실행 금지), `claude_failed_after_start`(부분 변경 가능 — 자동 폴백 금지, 변경 파일 검토 먼저), `verify_failed`(커밋·PR은 열렸으나 불변식 검증 실패 — 성공으로 보고하지 말고 PR에서 결함 수정, 자동 재실행 금지).
+
+Claude에 넘기는 job spec은 스크립트 안에 사본이 없다 — [`vault-ingest-claude.md`](projects/second-brain/config/skills/vault-ingest-claude.md)의 "Claude job spec" 블록이 위임·대화형 두 레인의 단일 정본이다. cron용 프롬프트 시드는 [`vault-ingest-once.md`](projects/second-brain/config/skills/vault-ingest-once.md)에 있다.
 
 ### 질의
 
@@ -210,12 +214,12 @@ python3 projects/second-brain/config/scripts/vault_ingest_once.py
 | [`wiki/VAULT_MEMORY.md`](wiki/VAULT_MEMORY.md) | 현재 상태와 포인터. 매 세션 로드, **8 KB 상한** |
 | [`docs/raw-layout.md`](docs/raw-layout.md) | `raw/` 레인·append-only 정의·파일명 정규화·색인 |
 | [`docs/github-linked-projects.md`](docs/github-linked-projects.md) | 외부 GitHub repo 추적 계약 |
-| [`docs/vault-ingest-log.md`](docs/vault-ingest-log.md) | 실행 이력 원장 (append-only, 세션 시작 시 로드하지 않음) |
+| [`docs/vault-ingest-log.md`](docs/vault-ingest-log.md) | 과거 실행 이력 원장 (동결 — 신규 run-log는 `outputs/runs/`에 노트로 생성) |
 | [`projects/second-brain/config/team-settings.yaml`](projects/second-brain/config/team-settings.yaml) | 조직·개인 배포 값의 단일 출처 |
 
 ## 스킬
 
-각 워크플로우의 진실원은 `projects/second-brain/config/skills/`의 스킬 문서다.
+각 워크플로우의 진실원은 `projects/second-brain/config/skills/`의 스킬 문서다. 폴더형 스킬(`pdf2md-ingest`, `hwp2md-ingest`)은 `.claude/skills/`의 심링크로 Claude Code에 자동 노출된다.
 
 | 스킬 | 역할 |
 | --- | --- |
@@ -223,6 +227,7 @@ python3 projects/second-brain/config/scripts/vault_ingest_once.py
 | `vault-ingest` | Hermes 네이티브 인제스트 폴백 |
 | `vault-ingest-once` | 수동·cron·webhook 공용 원샷 인제스트 진입점 (`vault_ingest_once.py`) |
 | `pdf2md-ingest` | PDF를 MD로 변환해 `Clippings/`에 투입 — 텍스트 밀도 측정 후 전략(pymupdf4llm·로컬 OCR·Claude 비전 전사) 제안, wiki화는 인제스트가 이어받음 |
+| `hwp2md-ingest` | HWP/HWPX를 MD로 변환해 `Clippings/`에 투입 — 순수 Python 추출(한컴오피스 불필요) 우선, 텍스트 희소 문서는 Claude 비전 전사 폴백. 커밋 불가 문서는 vault 밖 변환 모드 |
 | `vault-promote` | repo 문서·개인 KB 노트를 wiki + `raw/`로 승격 (클리핑 인제스트와 별도 레인) |
 | `vault-query` | wiki 기반 응답, 보존 답변을 `outputs/`에 저장 |
 | `vault-lint` | Claude 우선 린트 + Hermes 네이티브 폴백 |
