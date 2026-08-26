@@ -52,6 +52,17 @@ function Get-NormalizedRepoUrl($u) {
 if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
     Fail "winget이 없습니다. Microsoft Store에서 '앱 설치 관리자(App Installer)'를 설치한 뒤 재실행하세요."
 }
+# Windows PowerShell 5.1은 네이티브 명령이 stderr에 쓰고 그 stderr가 리다이렉트되면
+# 출력을 ErrorRecord로 바꾼다. $ErrorActionPreference="Stop"과 만나면 "로그인 안 됨" 같은
+# 정상 상태 보고가 스크립트를 중단시킨다 (gh auth status가 대표적).
+# 네이티브 호출은 이 함수로 감싼다 — $LASTEXITCODE는 그대로 보존된다.
+function Invoke-Native {
+    param([Parameter(Mandatory)][scriptblock]$Command)
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try { & $Command } finally { $ErrorActionPreference = $prev }
+}
+
 # 심링크 생성 권한(개발자 모드 또는 관리자) 점검. 이 vault는 .claude/skills를 심링크로
 # 추적하므로, 권한이 없으면 core.symlinks=true clone이 체크아웃 단계에서 실패한다.
 function Test-SymlinkPrivilege {
@@ -81,7 +92,7 @@ if (Get-Command git -ErrorAction SilentlyContinue) {
 }
 
 # ── 2. Obsidian ──────────────────────────────────────────────
-$obsidianInstalled = winget list --id Obsidian.Obsidian -e 2>$null | Select-String "Obsidian"
+$obsidianInstalled = Invoke-Native { winget list --id Obsidian.Obsidian -e 2>$null } | Select-String "Obsidian"
 if ($obsidianInstalled) {
     Say "Obsidian 확인됨"
 } else {
@@ -131,25 +142,25 @@ if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
         Fail "GitHub CLI를 설치했지만 gh 명령을 아직 찾지 못합니다. 새 PowerShell 창을 열어 이 스크립트를 다시 실행하세요."
     }
 }
-gh auth status 2>$null | Out-Null
+Invoke-Native { gh auth status 2>$null } | Out-Null
 if ($LASTEXITCODE -eq 0) {
     Say "GitHub 로그인 확인됨"
 } else {
     Say "GitHub 로그인 — 브라우저가 열리면 안내를 따르세요"
-    gh auth login --web --git-protocol https
+    Invoke-Native { gh auth login --web --git-protocol https }
     if ($LASTEXITCODE -ne 0) { Fail "GitHub 로그인 실패 — 재실행하세요." }
 }
-gh auth setup-git 2>$null   # HTTPS clone/push에 gh 자격증명 사용
+Invoke-Native { gh auth setup-git 2>$null } | Out-Null   # HTTPS clone/push에 gh 자격증명 사용
 
-if (-not (git config --global user.name 2>$null)) {
+if (-not (Invoke-Native { git config --global user.name 2>$null })) {
     $gitName = Read-Host "git 커밋에 기록할 이름 (예: 홍길동)"
     if ($gitName) { git config --global user.name $gitName }
 }
-if (-not (git config --global user.email 2>$null)) {
+if (-not (Invoke-Native { git config --global user.email 2>$null })) {
     $gitEmail = Read-Host "git 커밋에 기록할 이메일 (회사 이메일)"
     if ($gitEmail) { git config --global user.email $gitEmail }
 }
-if (-not (git config --global user.name 2>$null) -or -not (git config --global user.email 2>$null)) {
+if (-not (Invoke-Native { git config --global user.name 2>$null }) -or -not (Invoke-Native { git config --global user.email 2>$null })) {
     Warn "git 사용자 정보 미설정 — 커밋 시 필요합니다:`n  git config --global user.name `"이름`" ; git config --global user.email `"이메일`""
 }
 
@@ -172,14 +183,14 @@ if (Test-Path (Join-Path $TargetDir ".git")) {
     }
     Say "vault clone 중: $RepoUrl → $TargetDir"
     # core.symlinks=true: .claude/skills 상대 심링크 보존 시도 (검증은 7번 단계)
-    git clone -c core.symlinks=true $RepoUrl $TargetDir
+    Invoke-Native { git clone -c core.symlinks=true $RepoUrl $TargetDir }
     if ($LASTEXITCODE -ne 0) {
         Fail "clone 실패. 순서대로 확인하세요:`n  1) 심링크 권한 — 개발자 모드가 꺼져 있으면 체크아웃이 실패합니다 (설정 → 개인 정보 및 보안 → 개발자용).`n  2) repo 주소와 팀 repo 초대 수락 여부.`n  3) 로그인 — 'gh auth login'으로 브라우저 로그인 후 재실행."
     }
 }
 
 # 잔여 안전망: origin이 여전히 공개 템플릿이면 push·PR이 공개 repo로 향한다
-$currentOrigin = git -C $TargetDir remote get-url origin 2>$null
+$currentOrigin = Invoke-Native { git -C $TargetDir remote get-url origin 2>$null }
 if ($currentOrigin -and ((Get-NormalizedRepoUrl $currentOrigin) -eq (Get-NormalizedRepoUrl $TemplateUrl))) {
     Warn "origin이 공개 부트스트랩 템플릿입니다. 팀 repo가 생기면 전환하세요:`n  git -C `"$TargetDir`" remote set-url origin <팀-repo-URL>"
 }
