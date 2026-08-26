@@ -1,5 +1,5 @@
 # raw/ 보존소 계약
-<!-- origin: lemoncloud-io/knowledge@01f358b:docs/raw-layout.md -->
+<!-- origin: lemoncloud-io/knowledge@3b6a3d9:docs/raw-layout.md -->
 
 `raw/`의 상세 계약. `VAULT_RULES.md` § Directory Contract의 한 줄("Processed source
 originals. Append-only")을 이 문서가 구체화한다. 배경과 실측 근거:
@@ -7,7 +7,7 @@ originals. Append-only")을 이 문서가 구체화한다. 배경과 실측 근�
 
 ## 레인
 
-raw/는 유입 경로가 다른 3개 레인을 담는다.
+raw/는 유입 경로가 다른 4개 레인을 담는다.
 
 ### 1. 웹 클리핑 (루트 `*.md`)
 
@@ -50,6 +50,19 @@ raw/는 유입 경로가 다른 3개 레인을 담는다.
 - 계약 소유:
   `projects/auto-digest-screenshot-via-telegram/config/skills/telegram-screenshot-digest.md`.
 - `<slug>-<short-hash>.<ext>` + 짝 `.ocr.md`, append-only.
+
+### 4. 변환 원본 (`pdf/` · `hwp/` · `doc/`)
+
+- 유입: 바이너리 문서를 MD로 변환해 `Clippings/`에 투입하는 변환 스킬이 **원본 파일을
+  그대로** 보존하는 곳. 확장자 유지, 파일명 무변경, append-only.
+- 계약 소유: `pdf2md-ingest` → `raw/pdf/`, `hwp2md-ingest` → `raw/hwp/`,
+  `doc2md-ingest` → `raw/doc/` (+ 임베디드 이미지는 `raw/doc/media/<stem>/`).
+  각 스킬은 `projects/second-brain/config/skills/<name>/SKILL.md`.
+- 변환된 MD의 frontmatter가 `source_pdf`·`source_hwp`·`source_doc` 키로 여기를
+  가리키고 `source_sha256`으로 동일성을 고정한다. 중복 검사는 이 경로의 존재 여부다.
+- (2026-08-25 명문화. 세 스킬 계약이 같은 규칙을 각자 적고 있어 레인으로 묶었다 —
+  이 시점에 실제 `raw/pdf/`·`raw/hwp/`·`raw/doc/` 디렉터리는 어느 vault에도 아직 없다.
+  첫 변환 잉게스트가 만든다.)
 
 ## Append-only의 정의
 

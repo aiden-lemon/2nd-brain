@@ -47,6 +47,7 @@
 | **클리핑 인제스트** | Obsidian Web Clipper로 모은 `Clippings/`의 원문을 하루 1회 배치로 위키 문서로 컴파일 |
 | **PDF 인제스트** | PDF를 페이지별 텍스트 밀도에 맞는 전략으로 MD 변환해 `Clippings/`에 투입 (`pdf2md-ingest`) |
 | **HWP 인제스트** | 한글 문서(.hwp/.hwpx)를 한컴오피스 없이 MD로 변환해 `Clippings/`에 투입 (`hwp2md-ingest`) |
+| **Word 인제스트** | Word 문서(.doc/.docx)를 헤딩·표 구조를 지키며 MD로 변환해 `Clippings/`에 투입 (`doc2md-ingest`) |
 | **문서 승격** | 팀/개인 repo의 문서를 재사용 개념은 wiki로, 원문 스냅샷은 `raw/`로 승격 (`vault-promote`) |
 | **인용 기반 질의응답** | `wiki/INDEX.md`를 근거로 답하고, 보존할 답변은 `outputs/`에 저장 |
 | **품질 린트** | stub·모순·끊긴 링크·frontmatter 위반을 검사해 리포트를 남기고 `raw/` 색인을 재생성 |
@@ -219,7 +220,7 @@ Claude에 넘기는 job spec은 스크립트 안에 사본이 없다 — [`vault
 
 ## 스킬
 
-각 워크플로우의 진실원은 `projects/second-brain/config/skills/`의 스킬 문서다. 폴더형 스킬(`pdf2md-ingest`, `hwp2md-ingest`)은 `.claude/skills/`의 심링크로 Claude Code에 자동 노출된다.
+각 워크플로우의 진실원은 `projects/second-brain/config/skills/`의 스킬 문서다. 폴더형 스킬(`pdf2md-ingest`, `hwp2md-ingest`, `doc2md-ingest`)은 `.claude/skills/`의 심링크로 Claude Code에 자동 노출된다.
 
 | 스킬 | 역할 |
 | --- | --- |
@@ -228,6 +229,7 @@ Claude에 넘기는 job spec은 스크립트 안에 사본이 없다 — [`vault
 | `vault-ingest-once` | 수동·cron·webhook 공용 원샷 인제스트 진입점 (`vault_ingest_once.py`) |
 | `pdf2md-ingest` | PDF를 MD로 변환해 `Clippings/`에 투입 — 텍스트 밀도 측정 후 전략(pymupdf4llm·로컬 OCR·Claude 비전 전사) 제안, wiki화는 인제스트가 이어받음 |
 | `hwp2md-ingest` | HWP/HWPX를 MD로 변환해 `Clippings/`에 투입 — 순수 Python 추출(한컴오피스 불필요) 우선, 텍스트 희소 문서는 Claude 비전 전사 폴백. 커밋 불가 문서는 vault 밖 변환 모드 |
+| `doc2md-ingest` | `.doc`/`.docx`를 MD로 변환해 `Clippings/`에 투입 — pandoc 직행(`.docx`) 우선, `.doc`은 LibreOffice·Word COM·textutil 순으로 폴백. 커밋 불가 문서는 vault 밖 변환 모드 |
 | `vault-promote` | repo 문서·개인 KB 노트를 wiki + `raw/`로 승격 (클리핑 인제스트와 별도 레인) |
 | `vault-query` | wiki 기반 응답, 보존 답변을 `outputs/`에 저장 |
 | `vault-lint` | Claude 우선 린트 + Hermes 네이티브 폴백 |
