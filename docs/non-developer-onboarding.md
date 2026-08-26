@@ -40,7 +40,7 @@
 2. 아래 한 줄을 통째로 복사해 붙여넣고 Enter:
 
    ```powershell
-   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/lemoncloud-io/2nd-brain/master/projects/second-brain/config/scripts/setup-vault-windows.ps1)))
+   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/lemoncloud-io/2nd-brain/master/projects/second-brain/config/scripts/setup-vault-windows.ps1).TrimStart([char]0xFEFF)))
    ```
 
 ### 스크립트가 묻는 것 (순서대로)

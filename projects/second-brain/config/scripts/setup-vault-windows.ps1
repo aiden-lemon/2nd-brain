@@ -11,10 +11,13 @@
 #
 # 사용법 — git이 없어도 됨. PowerShell에 아래 한 줄만 붙여넣으면 끝
 # (파일 다운로드·실행 정책 설정 불필요):
-#   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/lemoncloud-io/2nd-brain/master/projects/second-brain/config/scripts/setup-vault-windows.ps1)))
+#   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/lemoncloud-io/2nd-brain/master/projects/second-brain/config/scripts/setup-vault-windows.ps1).TrimStart([char]0xFEFF)))
+#   (이 파일은 Windows PowerShell 5.1의 파일 실행 시 한글 깨짐을 막으려 UTF-8 BOM을
+#    달고 있다. irm은 BOM을 그대로 문자열에 넘겨 PowerShell 7의 파서가 실패하므로
+#    TrimStart로 벗긴다 — BOM이 이미 없으면 무해한 no-op이다.)
 #
 # repo/경로를 미리 지정하려면 인자를 붙인다:
-#   & ([scriptblock]::Create((irm ...))) -RepoUrl https://github.com/<org>/<repo>.git -TargetDir "$HOME\my-vault"
+#   & ([scriptblock]::Create((irm ...).TrimStart([char]0xFEFF))) -RepoUrl https://github.com/<org>/<repo>.git -TargetDir "$HOME\my-vault"
 # 파일로 받아 실행할 때:
 #   Set-ExecutionPolicy -Scope Process Bypass -Force
 #   .\setup-vault-windows.ps1 [-RepoUrl <url>] [-TargetDir <경로>] [-SkipConverters]
