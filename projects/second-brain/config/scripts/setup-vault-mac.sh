@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# origin: lemoncloud-io/knowledge@3b6a3d9:projects/second-brain/config/scripts/setup-vault-mac.sh
+# origin: lemoncloud-io/knowledge@e5a3687:projects/second-brain/config/scripts/setup-vault-mac.sh
 # setup-vault-mac.sh — 비개발자용 vault 온보딩 스크립트 (macOS)
 #
 # 하는 일:
@@ -35,13 +35,42 @@ fail() { printf '\n\033[1;31m[실패]\033[0m %s\n' "$*"; exit 1; }
 # URL 비교용 정규화: 프로토콜·ssh 접두·.git 접미를 벗겨 host/org/repo만 남긴다
 norm_url() { printf '%s' "$1" | sed -E 's#^https?://##; s#^git@##; s#:#/#; s#\.git$##; s#/$##'; }
 
+SHELL_NAME="${SHELL##*/}"
+case "$SHELL_NAME" in
+  zsh)  SHELL_RC="$HOME/.zshrc" ;;
+  bash) SHELL_RC="$HOME/.bash_profile" ;;  # macOS Terminal의 bash는 로그인 셸 — .bashrc는 안 읽는다
+  *)    SHELL_RC="" ;;
+esac
+
+# 셸 설정 파일에 줄 하나를 멱등하게 추가한다. 설치기들이 PATH를 이 프로세스에만 반영하고
+# 영구 등록은 사용자에게 맡기기 때문에 필요하다 — 등록하지 않으면 새 터미널에서
+# brew·gh·pandoc·uv·claude가 전부 사라진다.
+ensure_rc_line() {
+  rc_line="$1"; rc_note="$2"
+  if [ -z "$SHELL_RC" ]; then
+    warn "자동 등록을 지원하지 않는 셸($SHELL_NAME)입니다. 셸 설정에 직접 추가하세요:
+  $rc_line"
+    return 0
+  fi
+  if grep -qsF -- "$rc_line" "$SHELL_RC"; then return 0; fi
+  printf '\n%s\n' "$rc_line" >> "$SHELL_RC"
+  say "$rc_note ($SHELL_RC)"
+}
+
 # ── 1. Homebrew ───────────────────────────────────────────────
 if ! command -v brew >/dev/null 2>&1; then
   say "Homebrew 설치 중 (관리자 비밀번호를 물을 수 있습니다)..."
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   # Apple Silicon 기본 경로 반영
-  if [ -x /opt/homebrew/bin/brew ]; then eval "$(/opt/homebrew/bin/brew shellenv)"; fi
-  if [ -x /usr/local/bin/brew ]; then eval "$(/usr/local/bin/brew shellenv)"; fi
+  # Homebrew 설치기는 PATH 등록을 사용자에게 맡기고 안내문만 출력한다. 등록하지 않으면
+  # 이 프로세스에서만 brew가 잡히고, 이후 brew로 깐 git·gh·pandoc·uv도 새 터미널에서 사라진다.
+  for brew_bin in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+    if [ -x "$brew_bin" ]; then
+      eval "$("$brew_bin" shellenv)"
+      ensure_rc_line "eval \"\$($brew_bin shellenv)\"" "Homebrew PATH 등록됨"
+      break
+    fi
+  done
   command -v brew >/dev/null 2>&1 || fail "Homebrew 설치 실패 — https://brew.sh 에서 수동 설치 후 재실행하세요."
 else
   say "Homebrew 확인됨"
@@ -69,9 +98,14 @@ if command -v claude >/dev/null 2>&1; then
 else
   say "Claude Code 설치 중..."
   curl -fsSL https://claude.ai/install.sh | bash
-  export PATH="$HOME/.local/bin:$PATH"
-  command -v claude >/dev/null 2>&1 || warn "claude 명령을 아직 찾지 못했습니다 — 설치는 됐을 수 있으니 새 터미널에서 'claude --version'으로 확인하세요."
 fi
+# 공식 설치기는 ~/.local/bin 에 넣고 PATH 영구 등록은 사용자에게 맡긴다. 등록하지 않으면
+# 안내문의 "새 터미널에서 claude"가 동작하지 않는다. 설치 여부와 무관하게 매 실행 보장한다.
+if [ -d "$HOME/.local/bin" ]; then
+  case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac
+  ensure_rc_line 'export PATH="$HOME/.local/bin:$PATH"' "claude PATH 등록됨"
+fi
+command -v claude >/dev/null 2>&1 || warn "claude 명령을 아직 찾지 못했습니다 — 설치는 됐을 수 있으니 새 터미널에서 'claude --version'으로 확인하세요."
 
 # ── 4b. 문서 변환 도구 (pandoc · uv) ─────────────────────────
 # hwp·doc·pdf를 위키에 넣는 변환 스킬(hwp2md·doc2md·pdf2md-ingest)의 공통 전제.
@@ -152,12 +186,6 @@ if [ -n "$CURRENT_ORIGIN" ] && [ "$(norm_url "$CURRENT_ORIGIN")" = "$(norm_url "
 fi
 
 # ── 7. VAULT_DIR 등록 ────────────────────────────────────────
-SHELL_NAME="${SHELL##*/}"
-case "$SHELL_NAME" in
-  zsh)  SHELL_RC="$HOME/.zshrc" ;;
-  bash) SHELL_RC="$HOME/.bash_profile" ;;  # macOS Terminal의 bash는 로그인 셸 — .bashrc는 안 읽는다
-  *)    SHELL_RC="" ;;
-esac
 if [ -z "$SHELL_RC" ]; then
   warn "자동 등록을 지원하지 않는 셸($SHELL_NAME)입니다. 셸 설정에 직접 추가하세요:
   export VAULT_DIR=\"$TARGET_DIR\""
@@ -196,6 +224,8 @@ cat <<'NEXT'
     채팅으로 "클리핑 처리해줘"를 바로 쓸 수 있습니다.
     터미널을 쓴다면: 새 터미널에서  cd "$VAULT_DIR" && claude
     (첫 실행 시 브라우저 로그인 — 유료 플랜 계정 필요)
+ 5. 한글(hwp)·워드(docx)·PDF 문서를 위키에 넣으려면 "이 파일 잉게스트해줘"로 요청
+    (변환 도구는 이 스크립트가 설치했습니다)
 
  전체 안내 문서: 팀 위키의 docs/non-developer-onboarding.md
 ────────────────────────────────────────────
