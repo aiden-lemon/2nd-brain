@@ -65,16 +65,23 @@ function Invoke-Native {
 
 # 심링크 생성 권한(개발자 모드 또는 관리자) 점검. 이 vault는 .claude/skills를 심링크로
 # 추적하므로, 권한이 없으면 core.symlinks=true clone이 체크아웃 단계에서 실패한다.
+# New-Item -ItemType SymbolicLink는 쓰지 않는다 — Windows PowerShell 5.1의 구현이 개발자 모드를
+# 인식하지 못해 항상 관리자를 요구하고, git은 되는데 probe만 실패하는 오탐이 난다(실기기 확인).
+# cmd mklink는 git과 같은 CreateSymbolicLink 경로라 개발자 모드를 그대로 반영한다.
 function Test-SymlinkPrivilege {
-    $tmp = [IO.Path]::GetTempPath()
-    $probe = Join-Path $tmp ("vault-symlink-probe-" + [guid]::NewGuid().ToString("N"))
+    $base = Join-Path ([IO.Path]::GetTempPath()) ("vault-symlink-probe-" + [guid]::NewGuid().ToString("N"))
+    $target = "$base-target"; $link = "$base-link"
     try {
-        New-Item -ItemType SymbolicLink -Path $probe -Target $tmp -ErrorAction Stop | Out-Null
-        Remove-Item $probe -Force -ErrorAction SilentlyContinue
-        return $true
+        New-Item -ItemType Directory -Path $target -Force | Out-Null
+        cmd /c "mklink /D `"$link`" `"$target`"" 2>&1 | Out-Null
+        return (Test-Path $link)
     } catch { return $false }
+    finally {
+        # 링크는 rmdir로 지운다. Remove-Item -Recurse는 디렉터리 심링크를 따라가 대상까지 지운다.
+        if (Test-Path $link) { cmd /c "rmdir `"$link`"" 2>&1 | Out-Null }
+        Remove-Item $target -Recurse -Force -ErrorAction SilentlyContinue
+    }
 }
-
 function Update-SessionPath {
     $env:Path = [Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [Environment]::GetEnvironmentVariable("Path","User")
 }
@@ -105,11 +112,25 @@ if (Get-Command claude -ErrorAction SilentlyContinue) {
     Say "Claude Code 확인됨"
 } else {
     Say "Claude Code 설치 중..."
-    irm https://claude.ai/install.ps1 | iex
-    $env:Path += ";$HOME\.local\bin"
-    if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
-        Warn "claude 명령을 아직 찾지 못했습니다 — 설치는 됐을 수 있으니 새 PowerShell에서 'claude --version'으로 확인하세요."
+    Invoke-Native { irm https://claude.ai/install.ps1 | iex }
+}
+# 공식 설치기는 %USERPROFILE%\.local\bin 에 넣고 PATH 영구 등록은 사용자에게 맡긴다
+# (설치기 스스로 "not in your PATH"라고 안내한다). 등록하지 않으면 이 세션에서만 잡히고
+# 새 PowerShell에서 claude를 찾지 못한다 — 안내문의 "새 PowerShell에서 claude"와 어긋난다.
+# 설치 여부와 무관하게 매 실행 보장한다(재실행 안전).
+$claudeBin = "$HOME\.local\bin"
+if (Test-Path $claudeBin) {
+    $userPath = [Environment]::GetEnvironmentVariable("Path","User")
+    if (-not $userPath) { $userPath = "" }
+    if (($userPath -split ";") -notcontains $claudeBin) {
+        $joined = if ($userPath.TrimEnd(";")) { $userPath.TrimEnd(";") + ";" + $claudeBin } else { $claudeBin }
+        [Environment]::SetEnvironmentVariable("Path", $joined, "User")
+        Say "PATH에 $claudeBin 등록됨 (새 PowerShell부터 적용)"
     }
+    if (($env:Path -split ";") -notcontains $claudeBin) { $env:Path += ";$claudeBin" }
+}
+if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
+    Warn "claude 명령을 아직 찾지 못했습니다 — 설치는 됐을 수 있으니 새 PowerShell에서 'claude --version'으로 확인하세요."
 }
 
 # ── 3b. 문서 변환 도구 (pandoc · uv) ─────────────────────────
@@ -152,6 +173,9 @@ if ($LASTEXITCODE -eq 0) {
 }
 Invoke-Native { gh auth setup-git 2>$null } | Out-Null   # HTTPS clone/push에 gh 자격증명 사용
 
+# gh 로그인 단계의 "Press Enter"에서 엔터를 여러 번 누르면 남은 개행을 아래 Read-Host가
+# 먹어 이름·이메일이 빈 값으로 넘어간다(실기기 확인). 묻기 전에 입력 버퍼를 비운다.
+try { while ([Console]::KeyAvailable) { [Console]::ReadKey($true) | Out-Null } } catch { }
 if (-not (Invoke-Native { git config --global user.name 2>$null })) {
     $gitName = Read-Host "git 커밋에 기록할 이름 (예: 홍길동)"
     if ($gitName) { git config --global user.name $gitName }
