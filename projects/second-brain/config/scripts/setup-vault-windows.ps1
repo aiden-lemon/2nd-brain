@@ -37,7 +37,12 @@ $TemplateUrl = "https://github.com/lemoncloud-io/2nd-brain.git"
 
 function Say($msg)  { Write-Host "`n==> $msg" -ForegroundColor Green }
 function Warn($msg) { Write-Host "`n[주의] $msg" -ForegroundColor Yellow }
-function Fail($msg) { Write-Host "`n[실패] $msg" -ForegroundColor Red; exit 1 }
+function Fail($msg) {
+    Write-Host "`n[실패] $msg" -ForegroundColor Red
+    # exit는 스크립트블록(한 줄 부트스트랩)에서 호출한 PowerShell 세션까지 종료시킨다 —
+    # 창이 닫혀 실패 메시지를 읽을 수 없다. throw는 이 스크립트만 중단하고 창을 남긴다.
+    throw "setup-vault-windows 중단됨"
+}
 # URL 비교용 정규화: 프로토콜·ssh 접두·.git 접미를 벗겨 host/org/repo만 남긴다
 function Get-NormalizedRepoUrl($u) {
     (($u -replace '^https?://','' -replace '^git@','' -replace ':','/' -replace '\.git$','').TrimEnd('/'))
@@ -47,6 +52,18 @@ function Get-NormalizedRepoUrl($u) {
 if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
     Fail "winget이 없습니다. Microsoft Store에서 '앱 설치 관리자(App Installer)'를 설치한 뒤 재실행하세요."
 }
+# 심링크 생성 권한(개발자 모드 또는 관리자) 점검. 이 vault는 .claude/skills를 심링크로
+# 추적하므로, 권한이 없으면 core.symlinks=true clone이 체크아웃 단계에서 실패한다.
+function Test-SymlinkPrivilege {
+    $tmp = [IO.Path]::GetTempPath()
+    $probe = Join-Path $tmp ("vault-symlink-probe-" + [guid]::NewGuid().ToString("N"))
+    try {
+        New-Item -ItemType SymbolicLink -Path $probe -Target $tmp -ErrorAction Stop | Out-Null
+        Remove-Item $probe -Force -ErrorAction SilentlyContinue
+        return $true
+    } catch { return $false }
+}
+
 function Update-SessionPath {
     $env:Path = [Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [Environment]::GetEnvironmentVariable("Path","User")
 }
@@ -150,11 +167,14 @@ if (Test-Path (Join-Path $TargetDir ".git")) {
 } elseif ((Test-Path $TargetDir) -and (Get-ChildItem $TargetDir -Force -ErrorAction SilentlyContinue | Select-Object -First 1)) {
     Fail "$TargetDir 폴더가 이미 있고 비어있지 않은데 git repo가 아닙니다. 폴더를 비우거나 -TargetDir로 다른 경로를 지정해 재실행하세요."
 } else {
+    if (-not (Test-SymlinkPrivilege)) {
+        Warn "심링크 생성 권한이 없습니다 — clone이 체크아웃 단계에서 실패할 수 있습니다.`n지금 중단(Ctrl+C)하고 Windows 설정 → 개인 정보 및 보안 → 개발자용 → 개발자 모드를 켠 뒤`n이 스크립트를 다시 실행하는 것을 권합니다. (또는 PowerShell을 관리자로 실행)"
+    }
     Say "vault clone 중: $RepoUrl → $TargetDir"
     # core.symlinks=true: .claude/skills 상대 심링크 보존 시도 (검증은 7번 단계)
     git clone -c core.symlinks=true $RepoUrl $TargetDir
     if ($LASTEXITCODE -ne 0) {
-        Fail "clone 실패 — repo 주소와 팀 repo 초대 수락 여부를 확인하세요. 로그인 문제라면 'gh auth login'으로 브라우저 로그인 후 재실행하세요."
+        Fail "clone 실패. 순서대로 확인하세요:`n  1) 심링크 권한 — 개발자 모드가 꺼져 있으면 체크아웃이 실패합니다 (설정 → 개인 정보 및 보안 → 개발자용).`n  2) repo 주소와 팀 repo 초대 수락 여부.`n  3) 로그인 — 'gh auth login'으로 브라우저 로그인 후 재실행."
     }
 }
 
