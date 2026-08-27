@@ -1,5 +1,5 @@
 # 비개발자 온보딩 가이드 — 터미널 없이 팀 위키 쓰기
-<!-- origin: lemoncloud-io/knowledge@3b6a3d9:docs/non-developer-onboarding.md -->
+<!-- origin: lemoncloud-io/knowledge@e5a3687:docs/non-developer-onboarding.md -->
 
 작성일: 2026-08-24
 대상: 문서를 읽고·쓰고·클리핑하는 비개발자 팀원 (Tier 1)

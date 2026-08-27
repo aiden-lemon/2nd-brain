@@ -1,5 +1,5 @@
 # Agent Skills 표준과 스킬 등록 가이드
-<!-- origin: lemoncloud-io/knowledge@3b6a3d9:docs/agent-skills-registration.md -->
+<!-- origin: lemoncloud-io/knowledge@e5a3687:docs/agent-skills-registration.md -->
 
 Agent Skills 오픈 표준(SKILL.md)의 스펙과, Claude Code·기타 표면에서 스킬을
 등록·호출·팀 배포하는 방법의 조사 정리본이다. 조사일 **2026-08-21** — 채택 현황·

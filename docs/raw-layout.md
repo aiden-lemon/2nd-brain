@@ -1,5 +1,5 @@
 # raw/ 보존소 계약
-<!-- origin: lemoncloud-io/knowledge@3b6a3d9:docs/raw-layout.md -->
+<!-- origin: lemoncloud-io/knowledge@e5a3687:docs/raw-layout.md -->
 
 `raw/`의 상세 계약. `VAULT_RULES.md` § Directory Contract의 한 줄("Processed source
 originals. Append-only")을 이 문서가 구체화한다. 배경과 실측 근거:

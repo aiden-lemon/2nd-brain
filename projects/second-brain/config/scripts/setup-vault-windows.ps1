@@ -1,5 +1,5 @@
 ﻿# setup-vault-windows.ps1 — 비개발자용 vault 온보딩 스크립트 (Windows 10 1809+)
-# origin: lemoncloud-io/knowledge@3b6a3d9:projects/second-brain/config/scripts/setup-vault-windows.ps1
+# origin: lemoncloud-io/knowledge@e5a3687:projects/second-brain/config/scripts/setup-vault-windows.ps1
 #
 # 하는 일:
 #   1. Git·Obsidian·Claude Code CLI·GitHub CLI·문서 변환 도구(pandoc·uv)가 없으면 설치
