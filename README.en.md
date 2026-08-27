@@ -47,6 +47,7 @@ This vault inserts a **compile step** in between. Originals are preserved untouc
 | **Clipping ingest** | Compiles sources collected in `Clippings/` (via Obsidian Web Clipper) into wiki articles as one daily batch |
 | **PDF ingest** | Converts PDFs to Markdown with a strategy matched to per-page text density and drops them into `Clippings/` (`pdf2md-ingest`) |
 | **HWP ingest** | Converts Korean HWP/HWPX documents to Markdown — no Hancom Office required — and drops them into `Clippings/` (`hwp2md-ingest`) |
+| **Word ingest** | Converts Word documents (.doc/.docx) to Markdown and drops them into `Clippings/` — `.docx` keeps its structure, `.doc` may lose structure depending on the conversion path (`doc2md-ingest`) |
 | **Document promotion** | Promotes team/personal repo docs — reusable concepts to wiki, original snapshots to `raw/` (`vault-promote`) |
 | **Cited Q&A** | Answers from `wiki/INDEX.md` and saves retained answers to `outputs/` |
 | **Quality lint** | Detects stubs, contradictions, broken links, and frontmatter violations, files a report, and regenerates the `raw/` index |
@@ -215,7 +216,7 @@ Humans and LLMs read the same documents. Each one owns a different layer.
 
 ## Skills
 
-The skill documents in `projects/second-brain/config/skills/` are the source of truth for each workflow. Folder-style skills (`pdf2md-ingest`, `hwp2md-ingest`) are exposed to Claude Code automatically through symlinks in `.claude/skills/`.
+The skill documents in `projects/second-brain/config/skills/` are the source of truth for each workflow. Folder-style skills (`pdf2md-ingest`, `hwp2md-ingest`, `doc2md-ingest`) are exposed to Claude Code automatically through symlinks in `.claude/skills/`.
 
 | Skill | Role |
 | --- | --- |
@@ -224,6 +225,7 @@ The skill documents in `projects/second-brain/config/skills/` are the source of 
 | `vault-ingest-once` | One-shot ingest entry point shared by manual, cron, and webhook runs (`vault_ingest_once.py`) |
 | `pdf2md-ingest` | Converts PDFs to Markdown and drops them into `Clippings/` — measures text density, proposes a strategy (pymupdf4llm, local OCR, or Claude vision transcription); the regular ingest takes it from there |
 | `hwp2md-ingest` | Converts HWP/HWPX to Markdown and drops it into `Clippings/` — pure-Python extraction first (no Hancom Office), Claude vision transcription fallback for text-sparse documents; an out-of-vault mode handles documents that must not be committed |
+| `doc2md-ingest` | Converts `.doc`/`.docx` to Markdown and drops it into `Clippings/` — pandoc directly for `.docx` (structure preserved); for `.doc`, LibreOffice first on every platform, otherwise Word COM on Windows or textutil on macOS (headings, lists, table headers, and images are lost — a warning is emitted); an out-of-vault mode handles documents that must not be committed |
 | `vault-promote` | Promotes team/personal repo docs into the vault — reusable concepts to wiki, an original snapshot to `raw/` (a separate lane from clipping ingest) |
 | `vault-query` | Answer from wiki, save retained answers to `outputs/` |
 | `vault-lint` | Claude-first lint with Hermes-native fallback |
