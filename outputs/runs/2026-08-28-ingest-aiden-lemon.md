@@ -4,7 +4,7 @@ kind: ingest
 run_date: "2026-08-28"
 author: aiden-lemon
 summary: "클리핑 2건 처리 — Reddit 멀티에이전트 구성글에서 wiki 4건 신설, hwpx 교육용 샘플은 raw 보존만"
-pr: 12
+pr: 1
 processed: 2
 new_notes: 4
 updated_notes: 0
