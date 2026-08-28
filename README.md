@@ -56,6 +56,7 @@
 | **개인 노트** | `private/`는 git 비추적 로컬 전용 공간 — 팀 vault와 개인 메모를 분리 |
 | **GitHub 프로젝트 연결** | 외부 repo를 `projects/@<org>/<repo>/`에 상태·목표 노트로 가볍게 추적 |
 | **에이전트 컨텍스트 예산 관리** | 매 세션 로드되는 문서를 8 KB로 제한해 규칙이 컨텍스트를 잠식하지 않게 함 |
+| **한 줄 설치** | macOS·Windows 온보딩 스크립트가 도구 설치·GitHub 로그인·vault clone·환경 설정까지 처리 (재실행 안전) |
 
 ## 동작 방식
 
@@ -77,6 +78,7 @@ flowchart LR
 ```text
 Clippings/        ← inbox: 새로 수집된 소스 (처리 대기)
 raw/              ← 처리된 원문 (append-only, 수정·삭제 금지)
+raw/pdf|hwp|doc/  ← 변환 스킬이 보존한 바이너리 원본 (확장자·파일명 그대로)
 wiki/             ← 개념 문서, 한 개념당 한 파일
 wiki/topics/      ← 토픽 인덱스 페이지 (주제 클러스터)
 outputs/          ← 질의 응답, 분석 리포트, 린트 결과
@@ -101,8 +103,9 @@ private/          ← 개인 전용 스크래치 (git 비추적)
 | [Claude CLI](https://claude.com/claude-code) (`claude`) | 선택 | 인제스트·린트를 Claude Code에 위임 (없으면 Hermes 폴백) |
 | [GitHub CLI](https://cli.github.com) (`gh`) | 선택 | 터미널에서 PR 생성·GitHub 프로젝트 연결 (웹으로 대체 가능) |
 | Python 3 | 선택 | 원샷 인제스트(`vault_ingest_once.py`)·불변식 검증(`vault_verify.py`)·`raw/` 색인 생성(`generate_raw_index.py`) 스크립트 |
+| [pandoc](https://pandoc.org) · [uv](https://docs.astral.sh/uv/) | 선택 | 문서 변환 스킬(`doc2md-ingest`·`hwp2md-ingest`)용. 설치 스크립트가 함께 설치한다 |
 
-버전 확인:
+아래 설치 스크립트를 쓰면 이 목록을 직접 설치할 필요가 없다. 수동 설치 시 버전 확인:
 
 ```bash
 git --version        # 필수
@@ -111,6 +114,28 @@ gh --version         # 선택
 ```
 
 ## 설치 및 시작
+
+### 설치 스크립트 (권장 — 터미널 한 줄)
+
+Git·Obsidian·Claude Code·GitHub CLI와 문서 변환 도구(pandoc·uv)를 설치하고, GitHub 브라우저 로그인·git 사용자 정보 설정·vault clone·`VAULT_DIR` 등록·구조 검증까지 한 번에 끝낸다. 이미 설치·설정된 항목은 건너뛰므로 **재실행해도 안전**하다.
+
+**macOS** — 터미널에 붙여넣기:
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/lemoncloud-io/2nd-brain/master/projects/second-brain/config/scripts/setup-vault-mac.sh)"
+```
+
+**Windows** (10 1809+) — PowerShell에 붙여넣기:
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/lemoncloud-io/2nd-brain/master/projects/second-brain/config/scripts/setup-vault-windows.ps1).TrimStart([char]0xFEFF)))
+```
+
+스크립트는 실행 중 **팀 vault repo URL**을 묻는다. 그냥 Enter로 넘기면 팀 위키가 아니라 이 공개 템플릿이 clone되므로, 팀에서 쓰는 경우 반드시 주소를 입력한다. repo·경로를 미리 지정하려면 `REPO_URL`·`TARGET_DIR` 환경변수(Windows는 `-RepoUrl`·`-TargetDir` 인자)를 쓰고, 변환 도구를 빼려면 `SKIP_CONVERTERS=1`(Windows는 `-SkipConverters`)을 준다.
+
+> 터미널을 쓰지 않는 팀원을 온보딩한다면 **[`docs/non-developer-onboarding.md`](docs/non-developer-onboarding.md)** 가 전용 경로다 — 설치 한 번 이후 모든 작업을 Obsidian과 Claude 채팅으로만 한다. 팀 관리자용 체크리스트도 그 문서에 있다.
+
+### 수동 설치
 
 1. **저장소 clone 후 `VAULT_DIR` 설정** — 아래 저장소·경로는 예시다. clone 후 origin을 본인/팀 git으로 바꿔 쓰고, 절대경로 대신 `$VAULT_DIR`·`~` 상대경로를 쓴다.
 
@@ -213,8 +238,10 @@ Claude에 넘기는 job spec은 스크립트 안에 사본이 없다 — [`vault
 | [`CLAUDE.md`](CLAUDE.md) | 세션 읽기 순서, `VAULT_DIR` 해석, 하드 불변식 |
 | [`AGENTS.md`](AGENTS.md) | 에이전트 진입점 (모델 중립) |
 | [`wiki/VAULT_MEMORY.md`](wiki/VAULT_MEMORY.md) | 현재 상태와 포인터. 매 세션 로드, **8 KB 상한** |
-| [`docs/raw-layout.md`](docs/raw-layout.md) | `raw/` 레인·append-only 정의·파일명 정규화·색인 |
+| [`docs/raw-layout.md`](docs/raw-layout.md) | `raw/` 4개 레인(웹 클리핑·스크린샷·변환 원본 등)·append-only 정의·파일명 정규화·색인 |
 | [`docs/github-linked-projects.md`](docs/github-linked-projects.md) | 외부 GitHub repo 추적 계약 |
+| [`docs/agent-skills-registration.md`](docs/agent-skills-registration.md) | Agent Skills(SKILL.md) 표준 스펙과 스킬 등록·팀 배포 레퍼런스 |
+| [`docs/non-developer-onboarding.md`](docs/non-developer-onboarding.md) | 비개발자 온보딩 경로 (설치 스크립트 → Obsidian → Claude 채팅) |
 | [`docs/vault-ingest-log.md`](docs/vault-ingest-log.md) | 과거 실행 이력 원장 (동결 — 신규 run-log는 `outputs/runs/`에 노트로 생성) |
 | [`projects/second-brain/config/team-settings.yaml`](projects/second-brain/config/team-settings.yaml) | 조직·개인 배포 값의 단일 출처 |
 
