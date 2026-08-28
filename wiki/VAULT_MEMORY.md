@@ -22,11 +22,11 @@ bytes, not lines. 현재 상태와 포인터만 둔다: 정책은 `VAULT_RULES.m
 
 - Created: 2026-07-08 (vault 제어 파일 초기화 기준)
 - Last Sync: 2026-08-28 — knowledge@e5a3687까지 3회 반영 (변환 스킬 pdf/hwp/doc, vault_verify.py 공유 불변식, 온보딩 스크립트)
-- Last Lint Pass: 2026-07-31 — 첫 pass, 정책 정합성 감사, P0 4 / P1 3 / P2 3 / P3 7 (리포트 미보존)
+- Last Lint Pass: 2026-08-28 — P0 0 / P1 1 / P2 3 / P3 1, 리포트 `outputs/2026-08-28-vault-lint.md`
 - Last Ingest: never
 - Volume to date: 0 ingest runs / 0 clippings 처리 — `Clippings/` 미처리 1건, wiki article 0개, topic 1개
 - Ingest history: `docs/vault-ingest-log.md` — 실행별 상세, append-only, 세션 시작 시 로드하지 않음
-- Verification queue: `grep -rln "^status: needs-update" wiki/*.md` — 2026-07-31 기준 0건
+- Verification queue: `grep -rln "^status: needs-update" wiki/*.md` — 2026-08-28 기준 0건
 - Canonical lists: wiki 문서 목록 `wiki/INDEX.md`, 프로젝트 인덱스 `projects/README.md`
 
 ## Open Threads
