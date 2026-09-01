@@ -21,7 +21,7 @@ bytes, not lines. 현재 상태와 포인터만 둔다: 정책은 `VAULT_RULES.m
 ## Current State
 
 - Created: 2026-07-08 (vault 제어 파일 초기화 기준)
-- Last Sync: 2026-08-28 — knowledge@e5a3687까지 3회 반영 (변환 스킬 pdf/hwp/doc, vault_verify.py 공유 불변식, 온보딩 스크립트)
+- Last Sync: 2026-09-01 — knowledge@35cc79f까지 4회 반영 (기존 9건 갱신, 신규 claude-remote-session·claude-telegram-channel, docs/google-workspace-mcp-setup 공개 세탁 반입)
 - Last Lint Pass: 2026-08-28 — P0 0 / P1 1 / P2 3 / P3 1, 리포트 `outputs/2026-08-28-vault-lint.md`
 - Last Ingest: never
 - Volume to date: 0 ingest runs / 0 clippings 처리 — `Clippings/` 미처리 1건, wiki article 0개, topic 1개
