@@ -241,6 +241,7 @@ Claude에 넘기는 job spec은 스크립트 안에 사본이 없다 — [`vault
 | [`docs/raw-layout.md`](docs/raw-layout.md) | `raw/` 4개 레인(웹 클리핑·스크린샷·변환 원본 등)·append-only 정의·파일명 정규화·색인 |
 | [`docs/github-linked-projects.md`](docs/github-linked-projects.md) | 외부 GitHub repo 추적 계약 |
 | [`docs/agent-skills-registration.md`](docs/agent-skills-registration.md) | Agent Skills(SKILL.md) 표준 스펙과 스킬 등록·팀 배포 레퍼런스 |
+| [`docs/google-workspace-mcp-setup.md`](docs/google-workspace-mcp-setup.md) | Google Workspace MCP(`workspace-mcp`) 연결 절차 — OAuth 자격증명 발급, `claude mcp add` 등록, localhost 콜백 재인증 함정 |
 | [`docs/non-developer-onboarding.md`](docs/non-developer-onboarding.md) | 비개발자 온보딩 경로 (설치 스크립트 → Obsidian → Claude 채팅) |
 | [`docs/vault-ingest-log.md`](docs/vault-ingest-log.md) | 과거 실행 이력 원장 (동결 — 신규 run-log는 `outputs/runs/`에 노트로 생성) |
 | [`projects/second-brain/config/team-settings.yaml`](projects/second-brain/config/team-settings.yaml) | 조직·개인 배포 값의 단일 출처 |
@@ -265,6 +266,8 @@ Claude에 넘기는 job spec은 스크립트 안에 사본이 없다 — [`vault
 | `github-project-link` / `github-project-sync` | 외부 GitHub repo 등록·상태 동기화 |
 | `google-workspace` | Google Drive·Sheets·Slides 문서를 workspace-mcp 서버로 검색·읽기·편집 |
 | `ollama-local-models` | Ollama로 로컬 LLM/VLM 설치·서빙·호출하는 범용 절차 |
+| `claude-remote-session` | 다른 Claude Code 세션(로컬 소켓·계정 브리지)을 발견해 조회·지시·회신 — SSH 불필요 |
+| `claude-telegram-channel` | Channels로 텔레그램 봇을 세션에 인바운드 연결·운영 (셋업 체크리스트, 아웃바운드 발신) |
 | `parallel-wp-orchestration` | 멀티 repo/모듈 작업을 서브 에이전트 병렬 WP로 분해·실행·통합 |
 | `ai-studio-project-onboarding` | Google AI Studio export 앱을 로컬 git 정착 → vault 등록 → 개발 계획까지 온보딩 |
 
