@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# origin: lemoncloud-io/knowledge@45f6b0f:projects/second-brain/config/scripts/vault_verify.py
+# origin: lemoncloud-io/knowledge@35cc79f:projects/second-brain/config/scripts/vault_verify.py
 """Verify the vault invariants shared by every write lane (ingest, lint, promote).
 
 This is the single post-run check. Skills call it instead of restating the same
@@ -13,6 +13,16 @@ Checks (all lanes):
   2. No `- Last <Name>:` marker in memory appears more than once (never appended).
   3. Every `- Last <Name>:` line is at most 200 bytes.
   4. raw/ and archive/ are append-only: no modify/delete/rename against the base ref.
+  5. The `- Volume to date:` line matches the ledger fold (vault_volume.py) —
+     the counters are derived, never hand-incremented. Regenerate with
+     `python3 vault_volume.py --write` after any run that adds notes or run-logs.
+  6. Every tracked Markdown file outside raw/ and archive/ has parseable frontmatter.
+     Added 2026-08-28 after a merge conflict resolved by keeping both sides put a
+     duplicated key and orphaned sequence items into a project README: the text diff
+     looked clean, and the whole block silently stopped parsing for Obsidian and for
+     every skill that reads frontmatter. The structural pass (scan_frontmatter) is
+     dependency-free so it runs everywhere; when PyYAML is importable a full parse
+     runs on top of it, catching what the conservative structural pass lets through.
 
 Lane check: `--lane ingest|lint|promote` additionally requires that lane's marker
 to be present exactly once, so a lane cannot report success without stamping memory.
@@ -36,6 +46,15 @@ import subprocess
 import sys
 from pathlib import Path
 
+import vault_volume
+
+try:  # optional: absent on the Homebrew python3 that usually runs the lanes
+    import yaml
+
+    HAVE_YAML = True
+except ImportError:  # pragma: no cover - depends on the interpreter, both paths tested
+    HAVE_YAML = False
+
 MEMORY_REL = "wiki/VAULT_MEMORY.md"
 MEMORY_MAX_BYTES = 8192
 MARKER_MAX_BYTES = 200
@@ -49,6 +68,16 @@ LANE_MARKERS = {
 
 EXPECTED_DIRS = ["wiki", "raw", "Clippings", "templates"]
 MARKER_RE = re.compile(r"^- (Last [^:]+):")
+
+# Frontmatter structural check. Deliberately dependency-free: PyYAML is absent on
+# machines that run these lanes, and a check that silently skips itself is worse than
+# no check. It is conservative by design — it reports only shapes that cannot be valid
+# YAML, never style. A full parse runs on top when PyYAML happens to be importable.
+FM_FENCE = "---"
+FM_KEY_RE = re.compile(r"^(\s*)(?![\s#-])([^:]+?):(?:\s+(.*))?\s*$")
+FM_SEQ_RE = re.compile(r"^(\s*)-(?:\s+(.*))?\s*$")
+FM_BLOCK_RE = re.compile(r"^[|>][+\-]?\d*$")
+FRONTMATTER_SKIP_DIRS = ("raw/", "archive/")
 
 
 def resolve_vault() -> Path | None:
@@ -98,6 +127,171 @@ def check_memory(vault: Path, lane: str, defects: list[str]) -> None:
                 f"{MEMORY_REL} has {counts.get(marker, 0)} `- {marker}:` lines "
                 f"after a {lane} run (expected exactly 1)"
             )
+
+
+def _closes_quote(value: str) -> bool:
+    """True when a quoted scalar opens and closes on the same line (or is unquoted)."""
+    if not value or value[0] not in "\"'":
+        return True
+    quote = value[0]
+    rest = value[1:]
+    if quote == "'":
+        return rest.rstrip().endswith("'")
+    index = 0
+    while index < len(rest):
+        if rest[index] == "\\":
+            index += 2
+            continue
+        if rest[index] == '"':
+            return True
+        index += 1
+    return False
+
+
+def scan_frontmatter(text: str, rel_path: str, use_parser: bool = True) -> list[str]:
+    """Report frontmatter shapes that no YAML parser can accept.
+
+    Catches the failure class that reached master on 2026-08-28: a merge conflict
+    resolved by keeping both sides left sequence items indented under a scalar value
+    plus a duplicated key, which renders the whole block unparseable while the text
+    diff still looks clean.
+    """
+    if not text.startswith(FM_FENCE + "\n"):
+        return []
+
+    lines = text.split("\n")
+    end = None
+    for index in range(1, len(lines)):
+        if lines[index].rstrip() in (FM_FENCE, "..."):
+            end = index
+            break
+    if end is None:
+        return [f"{rel_path}: unterminated frontmatter (no closing `---`)"]
+
+    defects: list[str] = []
+    scopes: list[tuple[int, set[str]]] = []  # (indent, keys seen at that indent)
+    last_key: tuple[int, str] | None = None  # (indent, key) whose value is a closed scalar
+    block_indent: int | None = None
+    open_quote: str | None = None
+
+    for offset in range(1, end):
+        line = lines[offset]
+        lineno = offset + 1
+
+        if open_quote is not None:
+            if open_quote in line:
+                open_quote = None
+            continue
+
+        if not line.strip():
+            continue
+
+        indent = len(line) - len(line.lstrip(" \t"))
+        if "\t" in line[:indent]:
+            defects.append(f"{rel_path}:{lineno} tab used for indentation (YAML forbids tabs)")
+            continue
+
+        if block_indent is not None:
+            if indent > block_indent:
+                continue
+            block_indent = None
+
+        if line.lstrip().startswith("#"):
+            continue
+
+        seq = FM_SEQ_RE.match(line)
+        if seq:
+            if last_key is not None and indent > last_key[0]:
+                defects.append(
+                    f"{rel_path}:{lineno} sequence item is indented under `{last_key[1]}:`, "
+                    "which already has a scalar value — a merge conflict resolved by keeping "
+                    "both sides leaves exactly this shape"
+                )
+            while scopes and scopes[-1][0] > indent:
+                scopes.pop()
+            # each item opens its own mapping scope, so `- name:` may repeat across items
+            scopes.append((indent + 1, set()))
+            last_key = None
+            inline = (seq.group(2) or "").strip()
+            if inline.endswith(":"):
+                scopes[-1][1].add(inline[:-1].strip())
+            continue
+
+        key_match = FM_KEY_RE.match(line)
+        if not key_match:
+            continue  # wrapped plain scalar, block body, or anything else we do not judge
+
+        key = key_match.group(2).strip()
+        value = (key_match.group(3) or "").strip()
+
+        while scopes and scopes[-1][0] > indent:
+            scopes.pop()
+        if not scopes or scopes[-1][0] < indent:
+            scopes.append((indent, set()))
+        if key in scopes[-1][1]:
+            defects.append(
+                f"{rel_path}:{lineno} duplicate key `{key}` at the same level — "
+                "the later value silently wins, or the block fails to parse"
+            )
+        scopes[-1][1].add(key)
+
+        if FM_BLOCK_RE.match(value):
+            block_indent = indent
+            last_key = None
+        elif not value:
+            last_key = None
+        elif not _closes_quote(value):
+            open_quote = value[0]
+            last_key = None
+        else:
+            last_key = (indent, key)
+
+    if defects or not (use_parser and HAVE_YAML):
+        # Structural messages name the offending line and the likely cause, so they beat
+        # a parser dump. Only fall through to the parser when structure looked fine.
+        return defects
+
+    block = "\n".join(lines[1:end])
+    try:
+        parsed = yaml.safe_load(block)
+    except yaml.YAMLError as exc:
+        detail = str(exc).replace("\n", " ").strip()
+        return [f"{rel_path}: frontmatter is not valid YAML — {detail}"]
+    if parsed is not None and not isinstance(parsed, dict):
+        return [f"{rel_path}: frontmatter must be a mapping, got {type(parsed).__name__}"]
+    return []
+
+
+def check_frontmatter(vault: Path, defects: list[str]) -> None:
+    """Run the structural check over every tracked Markdown file outside raw/ and archive/."""
+    try:
+        proc = subprocess.run(
+            ["git", "ls-files", "-z", "*.md"],
+            cwd=vault,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        defects.append(f"frontmatter check could not run: {exc}")
+        return
+    if proc.returncode != 0:
+        stderr_head = proc.stderr.strip().splitlines()[0] if proc.stderr.strip() else "git ls-files failed"
+        defects.append(f"frontmatter check could not run: {stderr_head}")
+        return
+
+    for rel in proc.stdout.split("\0"):
+        if not rel or rel.startswith(FRONTMATTER_SKIP_DIRS):
+            continue
+        path = vault / rel
+        if not path.is_file():
+            continue  # staged deletion
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            defects.append(f"{rel}: could not read for the frontmatter check ({exc})")
+            continue
+        defects.extend(scan_frontmatter(text, rel))
 
 
 def check_append_only(vault: Path, base: str, defects: list[str]) -> None:
@@ -160,6 +354,8 @@ def main() -> int:
     defects: list[str] = []
     check_memory(vault, args.lane, defects)
     check_append_only(vault, base, defects)
+    check_frontmatter(vault, defects)
+    defects.extend(vault_volume.check(vault))
 
     lane_label = args.lane if args.lane != "none" else "shared"
     if defects:
@@ -170,7 +366,7 @@ def main() -> int:
 
     print(
         f"PASS ({lane_label}, base {base}): memory size, memory markers, "
-        "raw/archive append-only"
+        "raw/archive append-only, frontmatter structure, volume fold"
     )
     return 0
 

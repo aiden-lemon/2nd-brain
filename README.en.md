@@ -237,6 +237,7 @@ Humans and LLMs read the same documents. Each one owns a different layer.
 | [`docs/raw-layout.md`](docs/raw-layout.md) | The four `raw/` lanes (web clippings, screenshots, converted originals, …), append-only definition, filename normalization, index |
 | [`docs/github-linked-projects.md`](docs/github-linked-projects.md) | Contract for tracking external GitHub repos |
 | [`docs/agent-skills-registration.md`](docs/agent-skills-registration.md) | The Agent Skills (SKILL.md) standard plus how to register and distribute skills to a team |
+| [`docs/google-workspace-mcp-setup.md`](docs/google-workspace-mcp-setup.md) | Google Workspace MCP (`workspace-mcp`) connection procedure — OAuth credential issuance, `claude mcp add` registration, localhost callback re-auth pitfall |
 | [`docs/non-developer-onboarding.md`](docs/non-developer-onboarding.md) | Non-developer onboarding path (setup script → Obsidian → Claude chat) |
 | [`docs/vault-ingest-log.md`](docs/vault-ingest-log.md) | Historical execution ledger (frozen — new run logs are notes under `outputs/runs/`) |
 | [`projects/second-brain/config/team-settings.yaml`](projects/second-brain/config/team-settings.yaml) | Single source for org/personal deployment values |
@@ -261,6 +262,8 @@ The skill documents in `projects/second-brain/config/skills/` are the source of 
 | `github-project-link` / `github-project-sync` | Register and sync external GitHub repos |
 | `google-workspace` | Search, read, and edit Google Drive/Sheets/Slides docs via the workspace-mcp server |
 | `ollama-local-models` | General procedure for installing, serving, and calling local LLMs/VLMs with Ollama |
+| `claude-remote-session` | Discover other Claude Code sessions (local socket / account bridge) and query, delegate, and receive replies — no SSH required |
+| `claude-telegram-channel` | Connect and operate a Telegram bot as an inbound channel on a session (setup checklist, outbound send) |
 | `parallel-wp-orchestration` | Decompose multi-repo/module work into parallel sub-agent work packages, run, and integrate |
 | `ai-studio-project-onboarding` | Onboard a Google AI Studio export: settle it into local git, register it in the vault, and plan local development |
 
