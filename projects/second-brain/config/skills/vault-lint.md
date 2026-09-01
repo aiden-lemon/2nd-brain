@@ -4,7 +4,7 @@ description: >
   사용자의 knowledge vault에 대해 Claude Code 우선, Hermes-native fallback으로
   주기적 lint pass를 실행한다 (모순 탐지, 고아 페이지, 누락 아티클, frontmatter 결함 점검).
   예약 실행 전용 — 사용자가 직접 요청하는 경우는 드물다.
-origin: lemoncloud-io/knowledge@45f6b0f:projects/second-brain/config/skills/vault-lint.md
+origin: lemoncloud-io/knowledge@35cc79f:projects/second-brain/config/skills/vault-lint.md
 ---
 
 # Vault Lint (Claude-first with Hermes fallback)
@@ -37,7 +37,7 @@ vault 경로를 확인한다.
 4. Claude Code가 가능하면 `$ABSOLUTE_VAULT_DIR` 루트에서 아래 Claude lint job spec을 print mode로 실행한다.
 5. Claude 실행이 실패하면 자동 재시도를 반복하지 않는다. lock을 제거하고 실패 원인을 보고한 뒤 Hermes-native 절차로 fallback한다.
 6. Claude 실행 후에는 결과 파일 존재 여부를 Hermes가 확인하고, 공유 불변식(memory 크기,
-   `- Last …:` 마커 중복/길이, raw·archive append-only)은
+   `- Last …:` 마커 중복/길이, raw·archive append-only, frontmatter 파싱)은
    `python3 projects/second-brain/config/scripts/vault_verify.py --lane lint --base "$(git merge-base HEAD master)"`로 판정한다.
    exit 0이 아니면 성공으로 보고하지 않고 출력된 defect를 그대로 전달한다.
 7. lock을 제거하고 실행 경로(Claude 또는 Hermes fallback)를 보고한다.
@@ -88,7 +88,9 @@ Task:
 - Save the report to outputs/YYYY-MM-DD-vault-lint.md using templates/lint-report.md when available.
 - In wiki/VAULT_MEMORY.md, replace only the `Last Lint Pass:` line (date + issue counts, max 200 bytes)
   and refresh the `Verification queue` count. Issue detail belongs in the outputs/ report, not in memory.
-  Keep wiki/VAULT_MEMORY.md under 8 KB (`wc -c`).
+  Keep wiki/VAULT_MEMORY.md under 8 KB (`wc -c`). If the wiki note count changed (or vault_verify
+  reports volume drift), regenerate the `Volume to date` line with
+  `python3 projects/second-brain/config/scripts/vault_volume.py --write` — never hand-edit it.
 - Report any Current State / Open Threads entry that has drifted out of contract: a `Last Ingest:` line
   that was appended instead of replaced, restated project status, an Open Threads list over 5 items, or
   a closed thread still listed.
@@ -150,6 +152,9 @@ cd "$ABSOLUTE_VAULT_DIR" && claude -p "<CLAUDE_LINT_JOB_SPEC with ABSOLUTE_VAULT
 7. lint 결과를 `outputs/YYYY-MM-DD-vault-lint.md`에 저장한다.
 8. `wiki/VAULT_MEMORY.md`의 `Last Lint Pass` 한 줄(날짜 + issue 건수, 200 bytes 이하)만 교체하고
    `Verification queue` 건수를 갱신한다. issue 상세는 `outputs/` 리포트에 두고 memory로 옮기지 않는다.
+   wiki 노트 수가 변했거나 vault_verify가 volume drift를 보고하면
+   `python3 projects/second-brain/config/scripts/vault_volume.py --write`로 `Volume to date` 라인을
+   재생성한다(수동 편집 금지).
    갱신 후 `python3 projects/second-brain/config/scripts/vault_verify.py --lane lint --base "$(git merge-base HEAD master)"`가 exit 0인지 확인한다.
 9. 결과 요약(신규 stub 수, 분할 후보 topic, 발견된 모순 수)을 사용자에게 보고한다.
    심각한 모순이 발견되면 즉시 보고하고, 사소한 것(빈 stub 등)은 주간 요약에만

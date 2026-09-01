@@ -10,7 +10,7 @@ description: >
   희소한 이미지 위주 문서는 D3(페이지 렌더 → Claude 비전 전사)로 간다. wiki화는
   하지 않는다 — 기존 vault-ingest가 이어받는다. 커밋 불가 문서(고객사·개인)는 vault
   밖 변환 모드로 변환만 수행한다. 근거: 2026-08-25 로컬 스모크 실측 (§ 근거·주의).
-origin: lemoncloud-io/knowledge@e5a3687:projects/second-brain/config/skills/doc2md-ingest/SKILL.md
+origin: lemoncloud-io/knowledge@35cc79f:projects/second-brain/config/skills/doc2md-ingest/SKILL.md
 ---
 
 # doc2md-ingest (Word DOC/DOCX → Clippings MD)
@@ -71,7 +71,7 @@ ln -s ../../projects/second-brain/config/skills/doc2md-ingest \
 ```
 
 상대 심링크여야 한다 — 절대경로 심링크는 기계 종속이라 커밋할 수 없다
-(`docs/agent-skills-registration.md`).
+(`docs/agent-skills-registration.md` — 해당 문서가 있는 볼트에서만).
 
 ## 절차
 
