@@ -56,6 +56,7 @@ This vault inserts a **compile step** in between. Originals are preserved untouc
 | **Private notes** | `private/` is a git-untracked local scratch space, separating personal memos from the shared vault |
 | **GitHub-linked projects** | Tracks external repos as lightweight status/goal notes under `projects/@<org>/<repo>/` |
 | **Agent context budget** | Caps the always-loaded rule set at 8 KB so instructions never crowd out the actual work |
+| **One-line install** | macOS and Windows onboarding scripts handle tool installation, GitHub login, the vault clone, and environment setup (safe to re-run) |
 
 ## How it works
 
@@ -77,6 +78,7 @@ Ingest runs as **one daily batch**, not once per clipping. The agent creates an 
 ```text
 Clippings/        ← inbox: newly scraped sources (pending processing)
 raw/              ← processed source originals (append-only; no edits, renames, or deletes)
+raw/pdf|hwp|doc/  ← binary originals kept by the conversion skills (extension and filename intact)
 wiki/             ← concept articles, one concept per file
 wiki/topics/      ← topic index pages (subject clusters)
 outputs/          ← query answers, analysis reports, lint results
@@ -101,8 +103,9 @@ private/          ← personal scratch space (git-untracked)
 | [Claude CLI](https://claude.com/claude-code) (`claude`) | Optional | delegate ingest/lint to Claude Code (falls back to Hermes without it) |
 | [GitHub CLI](https://cli.github.com) (`gh`) | Optional | create PRs / link GitHub projects from the terminal (web works too) |
 | Python 3 | Optional | one-shot ingest runner (`vault_ingest_once.py`), invariant verifier (`vault_verify.py`), and `raw/` index generation (`generate_raw_index.py`) |
+| [pandoc](https://pandoc.org) · [uv](https://docs.astral.sh/uv/) | Optional | Needed by the document conversion skills (`doc2md-ingest`, `hwp2md-ingest`); the setup script installs them for you |
 
-Version check:
+The setup script below installs all of these, so you only need this list for a manual install. Version check:
 
 ```bash
 git --version        # required
@@ -111,6 +114,28 @@ gh --version         # optional
 ```
 
 ## Getting started
+
+### Setup script (recommended — one line)
+
+The script installs Git, Obsidian, Claude Code, and the GitHub CLI along with the document converters (pandoc, uv), signs you into GitHub in the browser, sets your git identity, clones the vault, registers `VAULT_DIR`, and verifies the structure. Anything already installed or configured is skipped, so **re-running is safe**.
+
+**macOS** — paste into Terminal:
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/lemoncloud-io/2nd-brain/master/projects/second-brain/config/scripts/setup-vault-mac.sh)"
+```
+
+**Windows** (10 1809+) — paste into PowerShell:
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/lemoncloud-io/2nd-brain/master/projects/second-brain/config/scripts/setup-vault-windows.ps1).TrimStart([char]0xFEFF)))
+```
+
+The script asks for your **team vault repo URL** partway through. Pressing Enter clones this public template instead of your team's wiki, so supply the URL if you are joining a team. To decide up front, set `REPO_URL` / `TARGET_DIR` (on Windows, the `-RepoUrl` / `-TargetDir` parameters); to skip the converters, pass `SKIP_CONVERTERS=1` (`-SkipConverters` on Windows).
+
+> Onboarding someone who does not use a terminal? **[`docs/non-developer-onboarding.md`](docs/non-developer-onboarding.md)** is the dedicated path — one install, then everything happens in Obsidian and a Claude chat. It also carries the checklist for whoever runs the onboarding.
+
+### Manual setup
 
 1. **Clone the repo and set `VAULT_DIR`** — the repo and path below are examples. After cloning, repoint `origin` to your own/team git, and use `$VAULT_DIR`/`~` relative paths instead of absolute machine paths.
 
@@ -209,8 +234,11 @@ Humans and LLMs read the same documents. Each one owns a different layer.
 | [`CLAUDE.md`](CLAUDE.md) | Session read order, `VAULT_DIR` resolution, hard invariants |
 | [`AGENTS.md`](AGENTS.md) | Agent entry point (model-neutral) |
 | [`wiki/VAULT_MEMORY.md`](wiki/VAULT_MEMORY.md) | Current state and pointers. Loaded every session, **8 KB cap** |
-| [`docs/raw-layout.md`](docs/raw-layout.md) | `raw/` lanes, append-only definition, filename normalization, index |
+| [`docs/raw-layout.md`](docs/raw-layout.md) | The four `raw/` lanes (web clippings, screenshots, converted originals, …), append-only definition, filename normalization, index |
 | [`docs/github-linked-projects.md`](docs/github-linked-projects.md) | Contract for tracking external GitHub repos |
+| [`docs/agent-skills-registration.md`](docs/agent-skills-registration.md) | The Agent Skills (SKILL.md) standard plus how to register and distribute skills to a team |
+| [`docs/google-workspace-mcp-setup.md`](docs/google-workspace-mcp-setup.md) | Google Workspace MCP (`workspace-mcp`) connection procedure — OAuth credential issuance, `claude mcp add` registration, localhost callback re-auth pitfall |
+| [`docs/non-developer-onboarding.md`](docs/non-developer-onboarding.md) | Non-developer onboarding path (setup script → Obsidian → Claude chat) |
 | [`docs/vault-ingest-log.md`](docs/vault-ingest-log.md) | Historical execution ledger (frozen — new run logs are notes under `outputs/runs/`) |
 | [`projects/second-brain/config/team-settings.yaml`](projects/second-brain/config/team-settings.yaml) | Single source for org/personal deployment values |
 
@@ -234,6 +262,8 @@ The skill documents in `projects/second-brain/config/skills/` are the source of 
 | `github-project-link` / `github-project-sync` | Register and sync external GitHub repos |
 | `google-workspace` | Search, read, and edit Google Drive/Sheets/Slides docs via the workspace-mcp server |
 | `ollama-local-models` | General procedure for installing, serving, and calling local LLMs/VLMs with Ollama |
+| `claude-remote-session` | Discover other Claude Code sessions (local socket / account bridge) and query, delegate, and receive replies — no SSH required |
+| `claude-telegram-channel` | Connect and operate a Telegram bot as an inbound channel on a session (setup checklist, outbound send) |
 | `parallel-wp-orchestration` | Decompose multi-repo/module work into parallel sub-agent work packages, run, and integrate |
 | `ai-studio-project-onboarding` | Onboard a Google AI Studio export: settle it into local git, register it in the vault, and plan local development |
 

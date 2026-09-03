@@ -21,9 +21,8 @@ bytes, not lines. 현재 상태와 포인터만 둔다: 정책은 `VAULT_RULES.m
 ## Current State
 
 - Created: 2026-07-08 (vault 제어 파일 초기화 기준)
-- Last Sync: 2026-08-14 — 운영 vault의 지침 계층을 이식 (VAULT_RULES 재구조화, CLAUDE/AGENTS
-  재작성, `docs/raw-layout.md`·`docs/github-linked-projects.md` 신설, team-settings.yaml 도입)
-- Last Lint Pass: 2026-07-31 — 첫 pass, 정책 정합성 감사, P0 4 / P1 3 / P2 3 / P3 7 (리포트 미보존)
+- Last Sync: 2026-09-01 — knowledge@35cc79f까지 4회 반영 (기존 9건 갱신, 신규 claude-remote-session·claude-telegram-channel, docs/google-workspace-mcp-setup 공개 세탁 반입)
+- Last Lint Pass: 2026-08-28 — P0 0 / P1 1 / P2 3 / P3 1, 리포트 `outputs/2026-08-28-vault-lint.md`
 - Last Ingest: 2026-08-28 (aiden-lemon) — 2 clippings -> 4 new / 0 updated wiki notes (PR #1)
 - Volume to date: 1 ingest run / 2 clippings 처리 — `Clippings/` 미처리 0건, wiki article 4개, topic 2개
 - Ingest history: `docs/vault-ingest-log.md` — 실행별 상세, append-only, 세션 시작 시 로드하지 않음
@@ -35,6 +34,5 @@ bytes, not lines. 현재 상태와 포인터만 둔다: 정책은 `VAULT_RULES.m
 Vault 수준의 살아있는 액션만, 최대 5개. 닫히면 삭제한다. 프로젝트 단위 next step은 여기 적지 않고
 `projects/<name>/README.md`의 `next_action`에 둔다.
 
-- `vault_ingest_once.py` job spec에 브랜치/커밋/PR 단계가 없어 자동 ingest 경로가 PR을 남기지 않는다.
-- 규칙 기계 검사가 부분적이다: `vault-lint`가 memory 캡·wikilink 형식·raw 색인은 검사하지만,
-  머신 절대경로와 개인 데이터 가드는 아직 사람이 본다.
+- 규칙 기계 검사가 여전히 부분적이다: `vault_verify.py`가 memory 캡·`Last …:` 마커·raw/archive
+  append-only를 판정하지만, 머신 절대경로와 개인 데이터 가드는 아직 사람이 본다.

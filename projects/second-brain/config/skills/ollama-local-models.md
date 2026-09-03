@@ -1,5 +1,14 @@
+---
+name: ollama-local-models
+description: >
+  로컬 머신에서 Ollama로 LLM/VLM을 설치·서빙·호출하는 범용 절차. 모델 pull·목록·제거,
+  :11434 API 호출(텍스트·vision), 다운스케일·타임아웃·실패 격리·구조화 출력 같은 운영
+  수칙과 트러블슈팅을 담는다. 사용자가 로컬 모델을 띄우거나 Ollama로 추론을 돌리려 할 때
+  사용한다. 개념·모델 정보의 진실원은 wiki/ollama 노트이며 이 스킬은 실행 절차만 담는다.
+origin: lemoncloud-io/knowledge@35cc79f:projects/second-brain/config/skills/ollama-local-models.md
+---
+
 # Skill: ollama-local-models (v1.0.0)
-<!-- origin: lemoncloud-io/knowledge@01f358b:projects/second-brain/config/skills/ollama-local-models.md -->
 
 로컬 머신에서 Ollama로 LLM/VLM을 설치·서빙·호출하는 범용 워크플로우. 개념·모델 정보의 진실원은
 [[wiki/ollama]] — 이 스킬은 실행 절차만 담는다. 도메인별 활용(사진 태깅 벤치 등)은 각 프로젝트
