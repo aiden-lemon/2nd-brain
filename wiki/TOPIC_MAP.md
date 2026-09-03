@@ -6,6 +6,7 @@ Root topic map for `wiki/topics/`.
 
 - [[wiki/topics/ai-agents|AI Agents]]
 - [[wiki/topics/knowledge-management|Knowledge Management]]
+- [[wiki/topics/remittance-compliance|Remittance Compliance]]
 
 ## Maintenance
 
