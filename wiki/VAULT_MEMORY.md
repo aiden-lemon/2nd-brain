@@ -23,10 +23,10 @@ bytes, not lines. 현재 상태와 포인터만 둔다: 정책은 `VAULT_RULES.m
 - Created: 2026-07-08 (vault 제어 파일 초기화 기준)
 - Last Sync: 2026-09-01 — knowledge@35cc79f까지 4회 반영 (기존 9건 갱신, 신규 claude-remote-session·claude-telegram-channel, docs/google-workspace-mcp-setup 공개 세탁 반입)
 - Last Lint Pass: 2026-08-28 — P0 0 / P1 1 / P2 3 / P3 1, 리포트 `outputs/2026-08-28-vault-lint.md`
-- Last Ingest: 2026-09-03 (aiden-lemon) — 1 clippings -> 2 new / 0 updated wiki notes (PR #4)
-- Volume to date: 2 ingest runs / 3 clippings (2026-08-28 → 2026-09-03) → wiki 6 notes(실측 2026-09-03), 토픽 3 root + 0 sub — fold 파생값, 수동 편집 금지 (vault_volume.py --write)
+- Last Ingest: 2026-09-04 (aiden-lemon) — 1 clippings -> 2 new / 0 updated wiki notes (PR #5)
+- Volume to date: 3 ingest runs / 4 clippings (2026-08-28 → 2026-09-04) → wiki 8 notes(실측 2026-09-04), 토픽 4 root + 0 sub — fold 파생값, 수동 편집 금지 (vault_volume.py --write)
 - Ingest history: `docs/vault-ingest-log.md` — 실행별 상세, append-only, 세션 시작 시 로드하지 않음
-- Verification queue: `grep -rln "^status: needs-update" wiki/*.md` — 2026-09-03 기준 1건
+- Verification queue: `grep -rln "^status: needs-update" wiki/*.md` — 2026-09-04 기준 1건
 - Canonical lists: wiki 문서 목록 `wiki/INDEX.md`, 프로젝트 인덱스 `projects/README.md`
 
 ## Open Threads
